@@ -1,4 +1,5 @@
 venv/
+.vercel-venv/
 __pycache__/
 *.pyc
 *.pyo

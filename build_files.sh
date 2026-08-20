@@ -1,9 +1,13 @@
 #!/bin/bash
 set -e
 
+echo "Creating virtual environment..."
+python3 -m venv .vercel-venv
+source .vercel-venv/bin/activate
 
 echo "Installing dependencies..."
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 
 echo "Running Django commands..."
 python manage.py collectstatic --noinput
