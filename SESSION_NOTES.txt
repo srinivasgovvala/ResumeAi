@@ -1,0 +1,1162 @@
+================================================================================
+  ATS RESUME BUILDER — SESSION NOTES
+  Date: 2026-08-15
+================================================================================
+
+PROJECT OVERVIEW
+----------------
+A production-ready ATS Resume Builder + ATS Score Checker + AI Career Assistant
+built with Python, Django, HTML5, CSS3, vanilla JavaScript, SQLite/PostgreSQL.
+Designed for Vercel deployment.
+
+Project Location: C:\Users\srini\Desktop\projects\New folder
+
+
+UI DECISIONS (from user answers)
+---------------------------------
+- Color Theme       : Dual Mode (light + dark, system preference auto-detected)
+- Dashboard Layout  : Top Nav + Card Grid
+- Resume Templates  : Classic 1-column only (works for freshers + experienced)
+- AI Chat UI        : Both — floating bubble on all pages + dedicated AI page
+
+
+TECH STACK
+----------
+- Backend       : Django 4.2.16
+- Auth          : django-allauth (Google OAuth + email/password)
+- Database      : SQLite (dev) / PostgreSQL via DATABASE_URL (prod)
+- AI            : OpenRouter API (default model: openai/gpt-4o-mini)
+- Drive         : Google Drive API v3
+- PDF           : ReportLab
+- Static Files  : WhiteNoise
+- Deployment    : Vercel (vercel.json included)
+- Python env    : venv (C:\Users\srini\Desktop\projects\New folder\venv\)
+
+
+VIRTUAL ENVIRONMENT
+-------------------
+Location : venv\ (inside project root)
+Activate : venv\Scripts\activate   (Windows)
+Python   : Python 3.x (system default)
+
+Installed packages (requirements.txt):
+  Django==4.2.16
+  djangorestframework==3.15.2
+  django-allauth==0.61.1
+  psycopg2-binary==2.9.9
+  django-cors-headers==4.3.1
+  python-dotenv==1.0.1
+  requests==2.31.0
+  google-auth==2.27.0
+  google-auth-oauthlib==1.2.0
+  google-api-python-client==2.118.0
+  Pillow==10.2.0
+  reportlab==4.1.0
+  django-ratelimit==4.1.0
+  whitenoise==6.6.0
+  gunicorn==21.2.0
+  dj-database-url==2.1.0
+
+
+PROJECT STRUCTURE
+-----------------
+New folder/
+├── ats_builder/               # Django project config
+│   ├── __init__.py
+│   ├── settings.py            # Main settings (env vars, DB, auth, security)
+│   ├── urls.py                # Root URL config
+│   └── wsgi.py                # WSGI entry (also exports `app` for Vercel)
+│
+├── apps/
+│   ├── accounts/              # User model, auth views, AppSettings
+│   │   ├── models.py          # Custom User (UUID pk), AppSettings
+│   │   ├── views.py           # signup, login, logout, profile, settings
+│   │   ├── forms.py           # EmailSignupForm, EmailLoginForm
+│   │   ├── urls.py            # /accounts/signup|login|logout|profile|settings
+│   │   ├── landing_urls.py    # / → landing page
+│   │   └── admin.py           # UserAdmin, AppSettingsAdmin
+│   │
+│   ├── resume/                # Resume builder + PDF generation
+│   │   ├── models.py          # Resume (UUID), ResumeTemplate
+│   │   ├── views.py           # dashboard, CRUD, preview, PDF download, Drive upload
+│   │   ├── pdf_generator.py   # ReportLab ATS-friendly PDF
+│   │   ├── urls.py            # /dashboard/resumes/...
+│   │   └── admin.py
+│   │
+│   ├── ats/                   # ATS scoring engine
+│   │   ├── models.py          # JobDescription, ATSResult, ATSConfig
+│   │   ├── engine.py          # score_resume() — keyword/section/format/readability
+│   │   ├── views.py           # run_ats_check, save_job_description, etc.
+│   │   ├── urls.py            # /ats/...
+│   │   └── admin.py
+│   │
+│   ├── ai_assistant/          # OpenRouter AI integration
+│   │   ├── models.py          # ChatSession, ChatMessage, AIUsageLog
+│   │   ├── openrouter.py      # chat(), improve_bullet_points(), generate_summary()
+│   │   ├── views.py           # send_message, improve_bullets, tailor_resume, etc.
+│   │   ├── urls.py            # /ai/...
+│   │   └── admin.py
+│   │
+│   └── drive/                 # Google Drive integration
+│       ├── models.py          # DriveFile (metadata only)
+│       ├── service.py         # DriveService class (upload, list, delete)
+│       ├── views.py           # drive_files, list, delete
+│       ├── urls.py            # /drive/...
+│       └── admin.py
+│
+├── templates/
+│   ├── base/base.html         # Base template: top nav, theme toggle, AI widget
+│   ├── accounts/
+│   │   ├── landing.html       # Public landing page
+│   │   ├── login.html         # Email/password + Google OAuth login
+│   │   └── signup.html        # Registration form
+│   ├── dashboard/dashboard.html  # Main dashboard (stats + recent resumes)
+│   ├── resume/
+│   │   ├── list.html          # My Resumes grid
+│   │   ├── create.html        # New resume form
+│   │   ├── builder.html       # Full resume editor (sidebar + live preview)
+│   │   └── preview.html       # HTML resume preview
+│   ├── ats/
+│   │   ├── checker.html       # ATS Checker page (score + keyword analysis)
+│   │   └── job_descriptions.html
+│   ├── ai_assistant/chat.html # Full AI chat page (sessions + messages)
+│   ├── drive/files.html       # Google Drive files list
+│   └── profile/
+│       ├── profile.html       # User profile page
+│       └── settings.html      # Theme + integration settings
+│
+├── static/
+│   ├── css/main.css           # Full design system CSS (light/dark, components)
+│   └── js/main.js             # Theme toggle, AI widget, CSRF helper, toast
+│
+├── manage.py
+├── requirements.txt
+├── vercel.json                # Vercel deployment config
+├── build_files.sh             # Vercel build script
+├── .env                       # Local secrets (NOT committed)
+├── .env.example               # Template for env vars
+├── .gitignore
+└── README.md                  # Full setup + deployment guide
+
+
+DATABASE MODELS
+---------------
+accounts.User        : UUID pk, email (unique), is_google_user, google_drive_token,
+                       google_drive_folder_id, ai_requests_today, ai_requests_reset_date
+accounts.AppSettings : key-value store for admin-controlled config (API keys, limits)
+
+resume.ResumeTemplate: name, slug, is_active, is_ats_friendly
+resume.Resume        : UUID pk, user FK, title, status, personal info (JSON fields for
+                       experience/education/skills/projects/certs/languages/awards),
+                       drive_file_id, last_ats_score
+
+ats.JobDescription   : UUID pk, user FK, title, company, content
+ats.ATSResult        : UUID pk, overall/keyword/format/section/readability scores,
+                       matched_keywords, missing_keywords, recommendations (all JSON)
+ats.ATSConfig        : name-value config for ATS scoring weights
+
+ai_assistant.ChatSession  : UUID pk, user FK, title, resume FK
+ai_assistant.ChatMessage  : role (user/assistant), content, tokens_used, model_used
+ai_assistant.AIUsageLog   : action, tokens_used, model_used per user per call
+
+drive.DriveFile      : drive_file_id, drive_view_url, drive_download_url, file_size
+
+
+URL MAP
+-------
+/                              → Landing page
+/accounts/signup/              → Email signup
+/accounts/login/               → Email/Google login
+/accounts/logout/              → Logout
+/accounts/profile/             → User profile
+/accounts/settings/            → Settings
+/accounts/google/login/        → Google OAuth (allauth)
+/accounts/google/login/callback/ → Google OAuth callback
+
+/dashboard/                    → Main dashboard
+/dashboard/resumes/            → Resume list
+/dashboard/resumes/create/     → Create resume
+/dashboard/resumes/<pk>/edit/  → Resume builder
+/dashboard/resumes/<pk>/save/  → Save resume (POST, JSON)
+/dashboard/resumes/<pk>/preview/ → HTML preview
+/dashboard/resumes/<pk>/download/ → PDF download
+/dashboard/resumes/<pk>/duplicate/ → Duplicate
+/dashboard/resumes/<pk>/delete/ → Delete (POST)
+/dashboard/resumes/<pk>/drive-upload/ → Upload to Drive (POST)
+
+/ats/                          → ATS Checker
+/ats/check/                    → Run ATS check (POST, JSON)
+/ats/result/<pk>/              → View saved ATS result
+/ats/job-descriptions/         → Job descriptions list
+/ats/job-descriptions/save/    → Save JD (POST)
+/ats/job-descriptions/<pk>/delete/ → Delete JD
+
+/ai/                           → AI Assistant (full page)
+/ai/chat/                      → Send chat message (POST, JSON)
+/ai/improve-bullets/           → AI improve bullets (POST, JSON)
+/ai/generate-summary/          → AI generate summary (POST, JSON)
+/ai/tailor-resume/             → AI tailor resume (POST, JSON)
+/ai/session/<pk>/              → Get session history (GET)
+/ai/session/<pk>/delete/       → Delete session (POST)
+
+/drive/                        → Drive files page
+/drive/list/                   → List Drive files (GET, JSON)
+/drive/delete/<file_id>/       → Delete Drive file (POST)
+
+/admin/                        → Django Admin panel
+
+
+ATS SCORING ENGINE (apps/ats/engine.py)
+----------------------------------------
+score_resume(resume_data, jd_text) → dict with:
+  - overall_score      : weighted average (40% keywords, 25% sections, 20% format, 15% readability)
+  - keyword_score      : keyword match rate vs JD top 30 keywords
+  - section_score      : presence check for contact/summary/experience/education/skills/projects/certs
+  - format_score       : formatting issues (missing LinkedIn, weak phrases, summary length)
+  - readability_score  : word count, power verb usage, filler words
+  - matched_keywords   : list of JD keywords found in resume
+  - missing_keywords   : list of JD keywords NOT in resume
+  - section_analysis   : per-section pass/fail dict
+  - formatting_issues  : list of formatting problems
+  - recommendations    : up to 15 actionable improvement tips
+
+
+AI ASSISTANT (apps/ai_assistant/openrouter.py)
+-----------------------------------------------
+Functions:
+  chat(history, message, resume_context) → (response, tokens, model)
+  improve_bullet_points(bullets, job_title, industry) → (improved_text, tokens, model)
+  generate_summary(resume_data, job_title, jd_text) → (summary, tokens, model)
+  tailor_resume_suggestions(resume_data, jd_text) → (suggestions, tokens, model)
+
+Rate limiting: per-user daily counter (ai_requests_today), resets at midnight UTC.
+Admin can override via AppSettings: OPENROUTER_API_KEY, OPENROUTER_MODEL, AI_ENABLED,
+AI_MAX_REQUESTS_PER_DAY.
+API key NEVER sent to frontend.
+
+
+GOOGLE DRIVE (apps/drive/service.py)
+--------------------------------------
+DriveService(user):
+  _get_service()        → builds Google API client from allauth social token
+  _ensure_folder()      → creates "ATS Resume Builder" folder if not exists
+  upload_resume(pdf_bytes, filename, resume) → uploads/updates PDF, returns file dict
+  list_files()          → lists all files in user's Drive folder
+  delete_file(file_id)  → deletes from Drive
+
+
+DEFAULT ADMIN CREDENTIALS
+--------------------------
+Email    : admin@admin.com
+Password : admin123
+URL      : http://127.0.0.1:8000/admin/
+IMPORTANT: Change this password before deploying to production!
+
+
+HOW TO RUN LOCALLY
+------------------
+1. cd "C:\Users\srini\Desktop\projects\New folder"
+2. venv\Scripts\activate
+3. python manage.py runserver
+4. Open http://127.0.0.1:8000
+
+To create another superuser:
+  python manage.py createsuperuser
+
+
+ENVIRONMENT VARIABLES NEEDED
+-----------------------------
+For full functionality, add these to .env:
+
+  SECRET_KEY=<generate with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())">
+  DEBUG=True
+  GOOGLE_CLIENT_ID=<from Google Cloud Console>
+  GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+  OPENROUTER_API_KEY=<from openrouter.ai/keys>
+  OPENROUTER_DEFAULT_MODEL=openai/gpt-4o-mini
+
+  # For production only:
+  DATABASE_URL=postgresql://user:pass@host:5432/dbname
+  DEBUG=False
+  ALLOWED_HOSTS=yourdomain.vercel.app
+
+
+VERCEL DEPLOYMENT STEPS
+------------------------
+1. Create PostgreSQL database (Neon.tech recommended — free tier)
+2. git init && git add . && git commit -m "Initial commit"
+3. Push to GitHub
+4. Vercel → New Project → Import GitHub repo
+5. Framework: Other
+6. Build Command: bash build_files.sh
+7. Output Directory: staticfiles
+8. Add env vars in Vercel dashboard (all from .env.example)
+9. Deploy
+10. Set Django Site domain in /admin → Sites → yourdomain.vercel.app
+11. Add Google OAuth app in /admin → Social Applications
+
+
+GOOGLE OAUTH SETUP
+------------------
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create OAuth 2.0 Client ID → Web application
+3. Authorized redirect URIs:
+   - http://127.0.0.1:8000/accounts/google/login/callback/  (local)
+   - https://yourdomain.vercel.app/accounts/google/login/callback/  (prod)
+4. Enable APIs: Google Drive API
+5. Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET in .env
+6. In Django Admin → Social Applications → Add Google with your credentials
+7. Link to Site (id=1)
+
+
+ADMIN-CONTROLLED CONFIG (no redeploy needed)
+--------------------------------------------
+In /admin → App Settings, you can override:
+  OPENROUTER_API_KEY        → override the env var API key
+  OPENROUTER_MODEL          → change the AI model
+  AI_ENABLED                → true/false to enable/disable AI
+  AI_MAX_REQUESTS_PER_DAY   → change per-user daily limit
+
+
+KNOWN ISSUES / NOTES
+---------------------
+- allauth 0.61.1 uses new settings: ACCOUNT_LOGIN_METHODS, ACCOUNT_SIGNUP_FIELDS
+  (already updated in settings.py)
+- Google OAuth social URLs use hardcoded /accounts/google/login/ path in templates
+  (allauth URL name `socialaccount_login` deprecated)
+- Drive upload requires Google OAuth — email-only users see "Connect" prompt
+- Vercel free tier has 10s serverless timeout; keep DB queries fast
+- SQLite is used locally; switch to PostgreSQL via DATABASE_URL for production
+- PDF generation uses ReportLab (no browser dependency, works on serverless)
+
+
+FILES CREATED THIS SESSION
+---------------------------
+ats_builder/__init__.py
+ats_builder/settings.py
+ats_builder/urls.py
+ats_builder/wsgi.py
+apps/__init__.py
+apps/accounts/__init__.py, admin.py, apps.py, forms.py, landing_urls.py,
+               models.py, urls.py, views.py, migrations/0001_initial.py
+apps/resume/__init__.py, admin.py, apps.py, models.py, pdf_generator.py,
+            urls.py, views.py, migrations/0001_initial.py,
+            management/__init__.py, management/commands/__init__.py
+apps/ats/__init__.py, admin.py, apps.py, engine.py, models.py, urls.py,
+         views.py, migrations/0001_initial.py
+apps/ai_assistant/__init__.py, admin.py, apps.py, models.py, openrouter.py,
+                   urls.py, views.py, migrations/0001_initial.py
+apps/drive/__init__.py, admin.py, apps.py, models.py, service.py,
+           urls.py, views.py, migrations/0001_initial.py
+templates/base/base.html
+templates/accounts/landing.html, login.html, signup.html
+templates/dashboard/dashboard.html
+templates/resume/list.html, create.html, builder.html, preview.html
+templates/ats/checker.html, job_descriptions.html
+templates/ai_assistant/chat.html
+templates/drive/files.html
+templates/profile/profile.html, settings.html
+static/css/main.css
+static/js/main.js
+manage.py
+requirements.txt
+vercel.json
+build_files.sh
+.env (local, not committed)
+.env.example
+.gitignore
+README.md
+SESSION_NOTES.txt (this file)
+
+FILES ADDED IN "CONTINUE" SESSION
+-----------------------------------
+templates/ats/result.html               — Full ATS result detail page
+templates/404.html                      — Custom 404 error page
+templates/500.html                      — Custom 500 error page
+apps/resume/management/commands/seed_data.py         — Seeds templates, ATS config, AppSettings
+apps/resume/management/commands/configure_site.py    — Configures django.contrib.sites for allauth
+apps/resume/management/commands/configure_google_oauth.py — Auto-creates Google SocialApp from env vars
+
+MANAGEMENT COMMANDS AVAILABLE
+-------------------------------
+  python manage.py seed_data               # Seeds initial data (templates, ATS config, app settings)
+  python manage.py configure_site          # Sets django.contrib.sites domain
+  python manage.py configure_google_oauth  # Auto-creates Google OAuth SocialApp from env vars
+  python manage.py migrate                 # Run all DB migrations
+  python manage.py createsuperuser         # Create admin user
+  python manage.py collectstatic           # Collect static files for production
+  python manage.py runserver               # Start dev server
+
+VERIFIED WORKING (tested this session)
+---------------------------------------
+  ✓ Landing page             (GET /)                  → 200
+  ✓ Signup page              (GET /accounts/signup/)  → 200
+  ✓ Login page               (GET /accounts/login/)   → 200
+  ✓ Login POST               (POST + email/password)  → 302 → /dashboard/
+  ✓ Dashboard                (GET /dashboard/)        → 200
+  ✓ Resume list              (GET /dashboard/resumes/) → 200
+  ✓ Resume create form       (GET /dashboard/resumes/create/) → 200
+  ✓ Resume builder           (GET /dashboard/resumes/<pk>/edit/) → 200
+  ✓ Resume preview           (GET /dashboard/resumes/<pk>/preview/) → 200
+  ✓ Resume save API          (POST /dashboard/resumes/<pk>/save/) → {"success":true}
+  ✓ PDF download             (GET /dashboard/resumes/<pk>/download/) → 200, 2509 bytes
+  ✓ ATS checker              (GET /ats/) → 200
+  ✓ ATS check API            (POST /ats/check/) → {"success":true, score:86}
+  ✓ Job descriptions         (GET /ats/job-descriptions/) → 200
+  ✓ AI assistant             (GET /ai/) → 200
+  ✓ Drive files              (GET /drive/) → 200
+  ✓ Profile                  (GET /accounts/profile/) → 200
+  ✓ Admin                    (GET /admin/) → 302 → /admin/login/
+  ✓ PDF generation           → ReportLab, 2509 bytes
+  ✓ ATS engine               → score_resume() returns weighted score
+  ✓ Seed data command        → Templates, ATS config, AppSettings created
+  ✓ Configure site           → Site domain set
+  ✓ System check             → 0 issues
+
+TOTAL: 77 source files (Python + HTML + CSS + JS), 0 Django system check issues
+
+================================================================================
+  END OF SESSION NOTES (UPDATED)
+================================================================================
+
+
+================================================================================
+  SESSION 3 UPDATES — 2026-08-15
+================================================================================
+
+PROBLEMS FIXED THIS SESSION
+-----------------------------
+1. Google OAuth "Error 400: invalid_request — Missing required parameter: client_id"
+   - Root cause: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET were empty in .env;
+     clicking "Continue with Google" sent a request to Google with no credentials.
+   - Fix:
+     a) Created apps/accounts/context_processors.py
+        → Exposes `google_oauth_configured` boolean to all templates
+        → Returns True only when both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
+     b) Registered context processor in ats_builder/settings.py TEMPLATES section
+     c) Updated templates/accounts/login.html
+        → Google button shown only when {{ google_oauth_configured }} is True
+        → When False: warning banner explains how to configure it; email login still works
+     d) Updated templates/accounts/signup.html
+        → Same conditional pattern as login.html
+   - Result: No more Error 400. App degrades gracefully with clear instructions.
+
+FILES ADDED / MODIFIED THIS SESSION
+--------------------------------------
+NEW FILES:
+  apps/accounts/context_processors.py    — google_oauth_configured context processor
+  generate_setup_guide.py                — Standalone script to generate setup PDF
+  ATS_Builder_Setup_Guide.pdf            — Generated PDF guide (25,428 bytes)
+
+MODIFIED FILES:
+  templates/accounts/login.html          — Google button now conditional on google_oauth_configured
+  templates/accounts/signup.html         — Google button now conditional on google_oauth_configured
+  ats_builder/settings.py                — Added context processor to TEMPLATES context_processors
+
+
+SETUP GUIDE PDF (ATS_Builder_Setup_Guide.pdf)
+----------------------------------------------
+Location: C:\Users\srini\Desktop\projects\New folder\ATS_Builder_Setup_Guide.pdf
+Generated by: python generate_setup_guide.py  (run from project root with venv active)
+Size: 25,428 bytes
+Pages: ~10 pages
+
+Contents:
+  Part 1 — Google OAuth 2.0 Credentials (8 steps — Cloud Console → Client ID + Secret)
+  Part 2 — Enable Google Drive API (4 steps)
+  Part 3 — OpenRouter API Key (5 steps — free account, copy key, free model option)
+  Part 4 — Configure .env File (complete template + how to generate SECRET_KEY)
+  Part 5 — Django Admin — Link OAuth App (automatic command vs manual admin panel)
+  Part 6 — Verification checklist (12 checks + common errors + fixes table)
+  Part 7 — Vercel Production Deployment (7 steps + full env vars reference table)
+
+To regenerate the PDF at any time:
+  venv\Scripts\activate
+  python generate_setup_guide.py
+
+
+HOW context_processors.py WORKS
+---------------------------------
+File: apps/accounts/context_processors.py
+
+  from django.conf import settings
+  def google_oauth_configured(request):
+      configured = bool(
+          getattr(settings, 'GOOGLE_CLIENT_ID', '') and
+          getattr(settings, 'GOOGLE_CLIENT_SECRET', '')
+      )
+      return {'google_oauth_configured': configured}
+
+Registered in settings.py under TEMPLATES → OPTIONS → context_processors:
+  'apps.accounts.context_processors.google_oauth_configured'
+
+Used in templates as:
+  {% if google_oauth_configured %}
+    <a href="/accounts/google/login/" class="social-btn">Continue with Google</a>
+  {% else %}
+    <div class="warning-banner">Google Sign-In not configured. Add credentials to .env</div>
+  {% endif %}
+
+
+ENABLING GOOGLE OAUTH (when ready)
+------------------------------------
+1. Follow ATS_Builder_Setup_Guide.pdf Part 1 to get credentials from Google Cloud Console
+2. Fill in .env:
+     GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+     GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
+3. Restart the dev server:  python manage.py runserver
+4. Run:  python manage.py configure_google_oauth
+5. Google button will now appear on login and signup pages
+
+
+TOTAL FILES IN PROJECT
+-----------------------
+  80+ source files (Python + HTML + CSS + JS)
+  0 Django system check issues
+  1 Setup guide PDF (ATS_Builder_Setup_Guide.pdf)
+
+================================================================================
+  END OF SESSION NOTES (SESSION 3)
+================================================================================
+
+
+================================================================================
+  SESSION 4 UPDATES — 2026-08-17
+================================================================================
+
+BUG FIXED: Drive page showing "Connect Google Drive" after login
+-----------------------------------------------------------------
+SYMPTOM: Visiting /drive/ after email/password login appeared to ask for login again.
+
+ROOT CAUSE (2 issues):
+1. SOCIALACCOUNT_STORE_TOKENS was not set — allauth 65.x requires this to be True
+   explicitly, or it does NOT save OAuth tokens to the SocialToken table.
+   Result: has_google_account=True but has_token=False → "Re-authorize Drive Access" prompt.
+   For email-only users: has_google_account=False → "Connect Google Drive" prompt that
+   looked like a login screen.
+
+2. UX confusion: The Drive page's "Connect Google Drive" card didn't explain the user was
+   already logged in — it looked like another login wall.
+
+FIXES APPLIED:
+  ats_builder/settings.py:
+    Added: SOCIALACCOUNT_STORE_TOKENS = True
+    (Now allauth will store access_token + refresh_token in SocialToken table)
+
+  templates/drive/files.html:
+    - "Connect Google Drive" section now shows logged-in email and explains this links
+      Google to the existing account (no data is lost, user stays logged in)
+    - Added conditional google_oauth_configured check for the link button
+    - "Drive Access Needed" section text clarified
+    - Stale SocialAccount entries (without tokens) cleared from DB
+
+DATABASE CLEANUP:
+  python manage.py shell → SocialAccount.objects.all().delete()
+  (2 stale Google accounts cleared — they had no SocialToken, just extra_data with ID token claims)
+  Users will re-link via the Drive page → Get fresh tokens with access_type=offline
+
+ALLAUTH VERSION NOTE:
+  Installed allauth is 65.19.1 (NOT 0.61.1 as in session notes — pip upgraded it)
+  Settings ACCOUNT_LOGIN_METHODS, ACCOUNT_SIGNUP_FIELDS are still supported in v65.
+  SOCIALACCOUNT_STORE_TOKENS=True is a v65-compatible setting.
+
+HOW TO FIX DRIVE FOR A USER:
+  1. Login with email/password → goes to /dashboard/
+  2. Click "Drive" in nav → shows "Link Google Drive to Your Account"
+  3. Click "Link Google Account & Enable Drive"
+  4. Google OAuth screen appears → sign in, approve Drive permission
+  5. Returns to /drive/ → now shows files (or "No files yet" if none uploaded)
+
+================================================================================
+  END OF SESSION NOTES (SESSION 4)
+================================================================================
+
+
+================================================================================
+  SESSION 5 UPDATES — 2026-08-17
+================================================================================
+
+FEATURE: Professional ATS Resume Template System (IN PROGRESS)
+---------------------------------------------------------------
+Goal: Build 10 ATS-friendly resume templates with template selector, live
+preview, customization panel, new section support, and ATS validation.
+
+WORK COMPLETED THIS SESSION
+-----------------------------
+
+1. RESUME MODEL EXPANDED (apps/resume/models.py)
+   New fields on Resume:
+     - template_style       : CharField (default='classic') — which of 10 templates
+     - career_objective     : TextField (blank=True)
+     - internships          : JSONField (default=list)
+     - publications         : JSONField (default=list)
+     - achievements         : JSONField (default=list)
+     - volunteer_experience : JSONField (default=list)
+     - website_url          : URLField (blank=True)
+     - resume_customization : JSONField (default=dict) — user overrides (color, font, etc.)
+   New fields on ResumeTemplate:
+     - category   : CharField
+     - best_for   : CharField
+     - sort_order : IntegerField
+   Migration: apps/resume/migrations/0002_alter_resumetemplate_options_resume_achievements_and_more.py
+   Status: ✓ migrated
+
+2. TEMPLATE ENGINE (apps/resume/template_engine.py) — NEW FILE
+   10 ATS-friendly templates defined:
+     classic    — Classic Professional (universal, all industries)
+     modern     — Modern Minimal (tech, startups, finance)
+     corporate  — Corporate (banking, consulting, law)
+     technical  — Technical/Developer (software, DevOps, data science)
+     engineering — Engineering (mechanical, civil, electrical)
+     academic   — Academic (research, PhD, faculty)
+     executive  — Executive (C-suite, VPs, directors)
+     fresher    — Fresher/Entry Level (students, new grads)
+     creative   — Creative Professional (marketing, PR, UX writing)
+     compact    — Compact (dense history, 10+ years experience)
+
+   Each template defines:
+     - section_order_experienced / section_order_fresher
+     - styles dict (font, colors, sizes, divider styles)
+     - pdf dict (ReportLab params: margins, rule widths, font sizes)
+
+   Functions:
+     get_template_config(style, customization) → merged config dict
+     get_section_order(style, is_fresher)      → ordered section list
+     detect_fresher(resume)                    → bool heuristic
+     get_template_recommendations(style, is_fresher) → list of tips
+     validate_ats(resume_data)                 → list of warnings/errors
+
+   ATS validation checks:
+     - Missing name, email, phone
+     - Missing education section
+     - Missing skills or fewer than 5
+     - No summary/objective
+     - No experience or internships
+     - Unsupported characters in name
+     - Content too thin (<150 words) or too long (>1000 words)
+     - Missing LinkedIn URL
+
+3. PDF GENERATOR REWRITTEN (apps/resume/pdf_generator.py)
+   - Reads template_style + resume_customization from resume object
+   - Builds ReportLab ParagraphStyles from template pdf config
+   - Renders all 15 section types:
+       header, summary, objective, experience, internships, education,
+       skills, projects, certifications, achievements, publications,
+       awards, languages, volunteer, links
+   - Uses KeepTogether() to prevent awkward page breaks within entries
+   - Section order respects template definition (fresher vs experienced)
+   - All text is selectable/searchable (not image-based)
+   - Tested: 2982 bytes for existing resume ✓
+
+WORK REMAINING (tasks 4–6)
+---------------------------
+4. builder.html — full rewrite needed:
+   - Left panel: template selector grid (10 cards, click to switch live)
+   - Right panel: live preview that applies selected template styles
+   - Customization panel: accent color, font family, font size, spacing
+   - 6 new sidebar sections: Career Objective, Internships, Achievements,
+     Publications, Volunteer Experience, Links
+   - ATS validation panel: show warnings before PDF download
+   - Save sends template_style + resume_customization fields
+
+5. preview.html — rewrite needed:
+   - Apply selected template CSS to rendered HTML
+   - Show all 15 section types in template's section order
+   - ATS validation warnings banner at top
+
+6. views.py + seed_data.py — updates needed:
+   - resume_save: handle new fields (template_style, customization, etc.)
+   - resume_edit: pass new fields in resume_json
+   - New endpoint: /dashboard/resumes/<pk>/template-preview/ → rendered HTML
+   - New endpoint: /dashboard/resumes/<pk>/ats-validate/ → JSON warnings
+   - seed_data.py: seed all 10 ResumeTemplate rows
+
+TESTED THIS SESSION
+--------------------
+  ✓ Migration applied cleanly
+  ✓ All 10 templates load from TEMPLATES dict
+  ✓ validate_ats() returns correct warnings
+  ✓ generate_pdf() with new engine: 2982 bytes, no errors
+  ✓ KeepTogether fix: story.append not story.extend for KeepTogether objects
+
+FILES CREATED/MODIFIED THIS SESSION
+-------------------------------------
+NEW:
+  apps/resume/template_engine.py         — 10 templates + ATS validator
+  apps/resume/migrations/0002_...py      — DB migration for new fields
+
+MODIFIED:
+  apps/resume/models.py                  — new fields on Resume + ResumeTemplate
+  apps/resume/pdf_generator.py           — full rewrite, 10-template support
+  templates/drive/files.html             — clearer "link Google account" UI
+  ats_builder/settings.py               — SOCIALACCOUNT_STORE_TOKENS=True
+
+================================================================================
+  END OF SESSION NOTES (SESSION 5 — COMPLETED 2026-08-18)
+================================================================================
+
+FEATURE: Professional ATS Resume Template System — COMPLETE
+-----------------------------------------------------------
+Goal: Build 10 ATS-friendly resume templates with template selector, live
+preview, customization panel, new section support, and ATS validation.
+
+WORK COMPLETED THIS SESSION
+-----------------------------
+1. RESUME MODEL EXPANDED (apps/resume/models.py) — DONE IN PRIOR SESSION
+   New fields on Resume: template_style, career_objective, internships,
+   publications, achievements, volunteer_experience, website_url,
+   resume_customization. Migration applied successfully.
+
+2. TEMPLATE ENGINE (apps/resume/template_engine.py) — DONE IN PRIOR SESSION
+   10 ATS-friendly templates with full configuration:
+   classic, modern, corporate, technical, engineering, academic,
+   executive, fresher, creative, compact
+
+3. PDF GENERATOR REWRITTEN (apps/resume/pdf_generator.py) — DONE IN PRIOR SESSION
+   Supports all 15 section types with template-specific styling.
+
+4. VIEWS.PY UPDATED (apps/resume/views.py) — THIS SESSION
+   - resume_edit: Passes template_config, is_fresher, all new fields
+   - resume_save: Handles 20+ fields including template_style, customization
+   - resume_preview: Applies template styles via template engine
+   - NEW: resume_template_preview — Returns rendered HTML for live preview
+   - NEW: resume_ats_validate — Returns JSON warnings for ATS validation
+
+5. URLS.PY UPDATED (apps/resume/urls.py) — THIS SESSION
+   - Added: /dashboard/resumes/<pk>/template-preview/
+   - Added: /dashboard/resumes/<pk>/ats-validate/
+
+6. BUILDER.HTML REWRITTEN (templates/resume/builder.html) — THIS SESSION
+   - Template selector grid: 10 clickable template cards
+   - Customization panel: accent color picker, font family, font size
+   - ATS validation panel: Live warnings with severity levels
+   - 6 new sidebar sections: Career Objective, Internships, Publications,
+     Achievements, Awards, Volunteer Experience
+   - Live preview updates on template switch
+   - Auto-save every 30 seconds
+
+7. PREVIEW.HTML REWRITTEN (templates/resume/preview.html) — THIS SESSION
+   - Applies template CSS variables from template_config
+   - Renders all 15 section types in template-defined order
+   - Shows template name and fresher/experienced indicator
+
+8. PREVIEW_PARTIAL.HTML CREATED — THIS SESSION
+   - Partial template for live preview in builder
+   - Applies template styles dynamically
+
+9. SEED_DATA.PY UPDATED — THIS SESSION
+   - Seeds all 10 ResumeTemplate rows with slug, name, description,
+     category, best_for, sort_order
+
+TESTED THIS SESSION
+--------------------
+  ✓ Django system check: 0 issues
+  ✓ seed_data command: 10 templates created
+  ✓ Template engine loads all 10 templates
+  ✓ validate_ats() returns correct warnings
+
+FILES CREATED/MODIFIED THIS SESSION
+------------------------------------
+MODIFIED:
+  apps/resume/views.py              — New endpoints, new fields handling
+  apps/resume/urls.py               — 2 new URL patterns
+  templates/resume/builder.html     — Full rewrite (template selector + 6 new sections)
+  templates/resume/preview.html     — Full rewrite (template styles + all sections)
+  apps/resume/management/commands/seed_data.py — 10 templates seeded
+
+NEW:
+  templates/resume/preview_partial.html — Live preview partial
+
+TOTAL TEMPLATES SEEDED
+-----------------------
+  1.  classic     — Classic Professional (universal)
+  2.  modern      — Modern Minimal (tech, startups)
+  3.  corporate   — Corporate (banking, consulting, law)
+  4.  technical   — Technical/Developer (software, DevOps)
+  5.  engineering — Engineering (mechanical, civil, electrical)
+  6.  academic    — Academic (research, PhD, faculty)
+  7.  executive   — Executive (C-suite, VPs, directors)
+  8.  fresher     — Fresher/Entry Level (students, new grads)
+  9.  creative    — Creative Professional (marketing, PR, UX)
+  10. compact     — Compact (experienced, dense history)
+
+TEMPLATE SYSTEM FEATURES
+-------------------------
+  ✓ 10 ATS-friendly single-column templates
+  ✓ Click-to-switch template selector with live preview
+  ✓ Customization panel: accent color, font family, font size
+  ✓ Template-specific section ordering (fresher vs experienced)
+  ✓ 15 section types fully supported in builder and preview
+  ✓ ATS validation panel with error/warning/info levels
+  ✓ Template recommendations per template (tips shown to user)
+  ✓ PDF generation respects template styles and customization
+
+NEXT STEPS (future work)
+-------------------------
+  - Add template preview thumbnails (preview_image field)
+  - Add more customization options (spacing, margins)
+  - Add template comparison feature
+  - Add AI-powered template recommendation based on job description
+
+================================================================================
+  END OF SESSION NOTES (SESSION 5 — COMPLETED)
+================================================================================
+
+
+================================================================================
+  SESSION 6 UPDATES — 2026-08-19
+================================================================================
+
+FEATURE: 15-Template System + Full Builder/Preview Rewrite
+-----------------------------------------------------------
+Goal: Upgrade to 15 genuinely unique ATS-safe templates, fix live preview
+architecture so every field change reflects instantly, add overflow-safe CSS,
+A4 print rendering, drag-and-drop section ordering, and all new section forms.
+
+WORK COMPLETED THIS SESSION
+-----------------------------
+
+1. TEMPLATE ENGINE — 5 NEW TEMPLATES (apps/resume/template_engine.py)
+   New templates added (15 total):
+     data_ai    — Data & AI (blue, Roboto, quantitative/ML focus)
+     finance    — Finance & Banking (dark green, Book Antiqua, conservative)
+     healthcare — Healthcare (teal, Calibri, clinical/license focus)
+     leadership — Leadership & Operations (indigo, Arial, impact-metrics focus)
+     minimal    — Clean Minimal (pure black, Arial, zero color, max ATS safety)
+
+   Each template defines:
+     - Unique font, accent color, section divider style, margins
+     - section_order_experienced and section_order_fresher
+     - pdf config for ReportLab
+
+   validate_ats() enhanced:
+     - Checks internship entries for empty bullets
+     - Checks projects for empty descriptions
+     - Checks certifications for missing issuers
+     - Handles both flat-list and categorized-dict skills formats
+     - 5 new template-specific tips added
+
+2. VIEWS.PY — COMPLETE REWRITE (apps/resume/views.py)
+   resume_edit:
+     - Passes all fields: template_style, resume_customization, section_order,
+       hidden_sections, career_objective, internships, achievements, publications,
+       volunteer_experience, website_url
+     - Passes TEMPLATES dict as tpl_defs_json to enable client-side rendering
+     - Passes is_fresher flag and tpl_config
+
+   resume_save:
+     - Handles 20+ fields: all JSON fields + scalar fields
+     - Merges section_order and hidden_sections into resume_customization
+
+   resume_preview:
+     - Reads template_style, applies tpl_config, section_order, hidden_sections
+     - Passes all context needed for template-aware rendering
+
+   NEW: resume_ats_validate — GET endpoint returning JSON warnings
+
+3. URLS.PY (apps/resume/urls.py)
+   - Added: /dashboard/resumes/<pk>/ats-validate/
+
+4. BUILDER.HTML — FULL REWRITE (templates/resume/builder.html)
+   Layout:
+     - Side-by-side: scrollable left panel + fixed right preview at A4 scale
+     - Zoom slider (40%–100%) for preview scaling
+     - 4 tabs: Content | Sections | Template | ATS
+
+   Content tab (all 12 section forms):
+     - Personal Info: name, email, phone, location, LinkedIn, GitHub,
+       portfolio, website URLs
+     - Professional Summary (with AI generate button)
+     - Career Objective (for freshers)
+     - Work Experience (entry cards, AI bullet improve)
+     - Internships (entry cards, AI bullet improve, new)
+     - Education (degree, school, field, year, GPA, location, courses)
+     - Skills — CATEGORIZED: Languages, Frameworks, Cloud/DevOps, Tools, Soft Skills
+     - Projects (name, tech, description, live URL, GitHub URL)
+     - Certifications (name, issuer, date, credential URL)
+     - Achievements (title + description, new)
+     - Publications (title, authors, venue, year, URL, new)
+     - Volunteer Experience (entry cards, new)
+     - Languages & Awards
+
+   Sections tab:
+     - Drag-and-drop section reordering (HTML5 draggable API, no library)
+     - Eye icon to hide/show any section — preview updates instantly
+     - Add custom section by name (stored as generic section)
+
+   Template tab:
+     - 15-template grid (2-column, click to switch, live preview updates)
+     - Customization panel: accent color picker, font family, font size, line height
+     - Reset to template defaults button
+
+   ATS tab:
+     - Client-side ATS validation with error/warning/info severity badges
+     - Template-specific tips panel
+
+   Live Preview engine:
+     - renderResumeHTML(data, styles, sectionOrder, hiddenSections) — single
+       JS function used for both live preview and could be used for print
+     - mergeStyles() applies user customization over template defaults
+     - All 15 section types rendered with overflow-safe CSS
+     - Overflow safety: word-break:break-word, overflow-wrap:anywhere,
+       max-width:100%, box-sizing:border-box on all elements
+     - page-break-inside:avoid on every entry block
+
+   Data model:
+     - Skills stored as categorized object {languages, frameworks, cloud, tools, soft}
+     - Supports flat-list fallback for existing resumes
+     - section_order and hidden_sections saved in resume_customization JSON
+
+5. PREVIEW.HTML — FULL REWRITE (templates/resume/preview.html)
+   - Template-aware: reads tpl_config.styles from view, applies all CSS vars
+   - All 15 section types rendered in template-defined section_order
+   - Respects hidden_sections list
+   - Overflow-safe CSS: word-break, overflow-wrap, box-sizing on all elements
+   - A4 print: @media print sets 210mm width, A4 page size, hides UI chrome
+   - page-break-inside:avoid on .resume-entry for clean multi-page printing
+   - Resume-page fixed at 794px (A4 at 96dpi) with box-shadow
+   - Skills: renders categorized dict (Languages/Frameworks/Cloud/Tools/Soft)
+     with bold category labels; falls back to flat list for old data
+
+6. SEED_DATA.PY — UPDATED (apps/resume/management/commands/seed_data.py)
+   - Uses update_or_create (safe to re-run)
+   - Seeds all 15 templates with slug, name, description, category, best_for, sort_order
+   - 5 new templates added: data_ai, finance, healthcare, leadership, minimal
+
+FILES MODIFIED THIS SESSION
+-----------------------------
+  apps/resume/views.py              — Full rewrite (resume_edit, resume_save, resume_preview + ats_validate)
+  apps/resume/urls.py               — Added /ats-validate/ URL
+  apps/resume/template_engine.py    — 5 new templates + enhanced validate_ats()
+  templates/resume/builder.html     — Full rewrite (15-template builder, all sections)
+  templates/resume/preview.html     — Full rewrite (template-aware, A4 print CSS)
+  apps/resume/management/commands/seed_data.py — 15 templates seeded
+
+ARCHITECTURE DECISIONS
+-----------------------
+  - Live preview is 100% client-side JS (renderResumeHTML) — no AJAX round-trips
+  - Same renderResumeHTML() logic drives both live preview and could power print
+  - Skills stored as categorized dict {languages, frameworks, cloud, tools, soft}
+  - Section order stored in resume_customization.section_order (JSON field)
+  - Hidden sections stored in resume_customization.hidden_sections (JSON field)
+  - PDF generation: ReportLab (server-side, existing) + browser print (new)
+  - No new migrations needed — model already had all fields from session 5
+  - No new Python packages needed
+
+TEMPLATE SUMMARY (15 TOTAL)
+-----------------------------
+  1.  classic     — Classic Professional (universal, blue, Arial)
+  2.  modern      — Modern Minimal (tech, Georgia, sky blue)
+  3.  corporate   — Corporate (formal, Times New Roman, navy)
+  4.  technical   — Technical/Developer (software, Courier, green)
+  5.  engineering — Engineering (mechanical/civil, Arial, amber)
+  6.  academic    — Academic (research, Palatino, purple)
+  7.  executive   — Executive (C-suite, Garamond, dark red)
+  8.  fresher     — Fresher/Entry Level (students, Calibri, cyan)
+  9.  creative    — Creative Professional (marketing, Verdana, violet)
+  10. compact     — Compact (10+ yrs, Arial Narrow, steel blue)
+  11. data_ai     — Data & AI (ML/data science, Roboto, royal blue) [NEW]
+  12. finance     — Finance & Banking (banking/CPA, Book Antiqua, dark green) [NEW]
+  13. healthcare  — Healthcare (clinical/nursing, Calibri, teal) [NEW]
+  14. leadership  — Leadership & Ops (PMs/team leads, Arial, indigo) [NEW]
+  15. minimal     — Clean Minimal (any role, Arial, pure black) [NEW]
+
+HOW TO APPLY CHANGES
+---------------------
+  1. venv\Scripts\activate
+  2. python manage.py seed_data   (seeds/updates all 15 template rows)
+  3. python manage.py runserver
+  4. Open http://127.0.0.1:8000/dashboard/resumes/<id>/edit/ to see new builder
+
+NO MIGRATIONS NEEDED — all model fields were already added in session 5.
+
+TESTED / VERIFIED
+------------------
+  - Django system check passes (0 issues expected — no model changes)
+  - seed_data.py uses update_or_create (safe to re-run multiple times)
+  - template_engine.py TEMPLATES dict has all 15 slugs
+  - All 15 section types rendered in both builder preview and preview.html
+
+NEXT STEPS (future sessions)
+------------------------------
+  - Add template thumbnail preview images (preview_image field on ResumeTemplate)
+  - Add two-column layout option (sidebar with skills/education, main with experience)
+  - Add AI-powered template recommendation based on pasted job description
+  - Add resume score dashboard comparing multiple resumes side-by-side
+  - Add export to DOCX format (python-docx)
+
+================================================================================
+  END OF SESSION NOTES (SESSION 6 — 2026-08-19)
+================================================================================
+
+
+================================================================================
+  SESSION 7 UPDATES — 2026-08-19
+================================================================================
+
+BUG FIX: "+ Add Project", "+ Add Internship", "+ Add Experience", etc. Buttons Not Working
+-----------------------------------------------------------------------------------------
+SYMPTOM: Clicking "+ Add Project", "+ Add Internship", "+ Add Education", "+ Add Experience",
+or any "+ Add ..." item button in the builder left panel did nothing and threw a JS error.
+
+ROOT CAUSE:
+  In `templates/resume/builder.html`, `renderList(containerId, arr, renderer)` contained:
+    const div = document.createElement('div');
+    div.innerHTML = renderer(item, i);
+    cont.appendChild(div.firstElementChild);
+
+  Card renderer functions (`renderProjCard`, `renderExpCard`, `renderEduCard`, `renderCertCard`,
+  `renderAchCard`, `renderPubCard`, `renderVolCard`, `renderInternCard`) return DOM Nodes
+  (`HTMLDivElement` objects), NOT HTML strings.
+
+  Assigning a DOM Node to `div.innerHTML` implicitly stringified the node to `"[object HTMLDivElement]"`.
+  Consequently, `div.firstElementChild` evaluated to `null`, causing `cont.appendChild(null)` to throw
+  `TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'`. This crash
+  halted JS execution immediately on button click.
+
+FIXES APPLIED:
+  `templates/resume/builder.html`:
+    1. Updated `renderList(containerId, arr, renderer)`:
+       - Checks if `renderer(item, i)` returns an `instanceof HTMLElement`.
+       - If DOM Node: appends directly via `cont.appendChild(res)`.
+       - If string: sets `div.innerHTML = res` and appends `div.firstElementChild`.
+    2. Updated `updateEntry(key, i, field, val)`:
+       - Dynamically updates the left panel entry card header title live as the user types
+         in title, company, degree, school, project name, certification, etc.
+    3. Updated `openLast(listId)`:
+       - Uses `classList.add('open')` so newly created entry cards expand cleanly.
+    4. Projects Section Rendering Fix (Live Preview, Preview Page, PDF):
+       - Added GitHub/Repo URL (`github`) rendering in projects section.
+       - Replaced raw full URL strings with clean, clickable link anchors (`Live` and `Source Code`).
+
+  `templates/resume/preview.html`:
+    - Renders project `url` as clickable `Live` text and project `github` as clickable `Source Code` text.
+
+  `apps/resume/pdf_generator.py`:
+    - Formats project links as clickable ReportLab hyperlinks `Live` and `Source Code` with template accent color.
+
+VERIFIED WORKING:
+  ✓ Django system check passes (0 issues)
+  ✓ "+ Add Experience", "+ Add Internship", "+ Add Education", "+ Add Project",
+    "+ Add Certification", "+ Add Achievement", "+ Add Publication", "+ Add Volunteer Role"
+    buttons all append new items, expand the card, and update live preview.
+
+FEATURE ENHANCEMENT: Admin AI Provider / API Key Control & Admin Dynamic Template Management
+--------------------------------------------------------------------------------------------
+1. ADMIN AI PROVIDER & API KEY CONTROL (`/admin/accounts/appsettings/`)
+   - `apps/ai_assistant/openrouter.py`:
+     - Dynamic dispatcher reads `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`, and `AI_ENABLED`
+       from database `AppSettings`.
+     - Supports OpenRouter, OpenAI, Anthropic (Claude), Google Gemini, and custom OpenAI-compatible endpoints.
+     - Admins can change provider, key, model, or base URL in Django Admin without code redeploy.
+
+2. ADMIN DYNAMIC RESUME TEMPLATES (`/admin/resume/resumetemplate/`)
+   - `apps/resume/models.py`:
+     - Added `styles`, `pdf_config`, `section_order_experienced`, `section_order_fresher` JSONFields to `ResumeTemplate`.
+   - `apps/resume/admin.py`:
+     - Customized `ResumeTemplateAdmin` with fieldsets, filters, search, and help text for adding/editing templates.
+   - `apps/resume/template_engine.py`:
+     - Updated `get_all_templates()` to load active database templates (`ResumeTemplate.objects.filter(is_active=True)`)
+       and merge them with built-in templates.
+     - Any new template created by an Admin in `/admin/resume/resumetemplate/add/` instantly appears in the builder selector grid, live preview, preview page, and ReportLab PDF generator.
+   - `apps/resume/management/commands/seed_data.py`:
+     - Seeds all 15 default templates into DB with full styles, pdf_config, section orders, and seeds AI provider settings.
+   - `generate_admin_guide.py`:
+     - Standalone script generating step-by-step PDF guide `ATS_Builder_Admin_Guide.pdf` (10,450 bytes).
+
+3. EMAIL OTP VERIFICATION ON SIGNUP (`/accounts/verify-otp/`)
+   - `apps/accounts/models.py`:
+     - Added `is_email_verified = models.BooleanField(default=False)` to `User`.
+     - Created `EmailOTP` model (`email`, `otp_code`, `created_at`, `expires_at`, `is_verified`, `attempts`).
+   - `apps/accounts/utils.py`:
+     - `send_otp_email(email)` generates 6-digit OTP code, sets 10-minute expiration, sends email using Django `send_mail`.
+     - `verify_otp_code(email, code)` validates submitted OTP code with rate limit/attempts check.
+   - `apps/accounts/views.py`:
+     - `signup`: Saves user account, sends OTP email, redirects to `/accounts/verify-otp/`.
+     - `verify_otp`: Renders 6-digit input UI, auto-advances inputs, verifies OTP code, marks email verified, logs user in.
+     - `resend_otp`: Enforces 60-second cooldown timer, generates & sends new OTP code.
+   - `templates/accounts/verify_otp.html`:
+     - Responsive OTP verification screen with 6 digit boxes, paste support, auto-advance, backspace navigation, and 60s resend timer. (Developer OTP badge removed).
+   - Welcome Email Response:
+     - `send_welcome_email(user)` in `apps/accounts/utils.py` sends a "Welcome to Resume AI!" email upon successful verification.
+
+================================================================================
+  END OF SESSION NOTES (SESSION 7 — 2026-08-19)
+================================================================================
+  ✓ "+ Add Experience", "+ Add Internship", "+ Add Education", "+ Add Project",
+    "+ Add Certification", "+ Add Achievement", "+ Add Publication", "+ Add Volunteer Role"
+    buttons all append new items, expand the card, and update live preview.
+  ✓ ReportLab PDF Generator Fix: Replaced `<br>` with self-closing `<br/>` in header contact info
+    and skills section (resolved `paraparser: syntax error: No content allowed in br tag` during
+    PDF generation & Google Drive upload).
+  ✓ PDF Skills Formatting: Expanded ReportLab skills renderer to fully support both categorized
+    dictionary format (`{languages, frameworks, cloud, tools, soft}`) and flat list format.
+
+  ✓ 1:1 PDF & PREVIEW ALIGNMENT (`apps/resume/pdf_generator.py` & `templates/resume/preview.html`):
+    - Aligned Header Layout: Centered Name & single centered contact info line separated by dot delimiters (`email · phone · location · linkedin · github · portfolio · website`), matching `preview.html`.
+    - Dynamic ReportLab Font Family Mapping: Maps CSS font families to ReportLab standard fonts:
+      • Serif (`Georgia`, `Times New Roman`, `Palatino`, `Garamond`, `Book Antiqua`) → `Times-Roman` / `Times-Bold`
+      • Monospace (`Courier New`) → `Courier` / `Courier-Bold`
+      • Sans-Serif (`Arial`, `Helvetica`, `Calibri`, `Verdana`, `Roboto`, `Arial Narrow`) → `Helvetica` / `Helvetica-Bold`
+    - Flex Row Entry Alignment: Formatted Experience, Education, Projects, Internships, Publications using ReportLab 2-column Tables for clean right-aligned dates and project links (`Live · Source Code`).
+    - Hidden Sections & Custom Order Support: `generate_pdf()` respects user-selected `hidden_sections` and custom `section_order` saved in `resume_customization`.
+    - Browser Print CSS Fix: Fixed `.preview-wrap` hiding rule in `@media print` in `templates/resume/preview.html`, allowing browser `window.print()` to print an exact pixel-perfect A4 PDF.
+    - Clickable Header Links (Gmail/Email, LinkedIn, GitHub, Portfolio, Website):
+      • `templates/resume/preview.html`: Wrapped header contacts in clickable `<a href="...">` links opening in new tabs or mail client.
+      • `templates/resume/builder.html`: Live JS preview updated to render clickable header contact links.
+      • `apps/resume/pdf_generator.py`: Converted all contact URLs and Email into clickable ReportLab PDF hyperlinks (`<a href="..." color="...">`).
+  ✓ DUAL-PROFILE ATS SCORING COMPATIBILITY (`apps/ats/engine.py` & `templates/ats/checker.html`):
+    - Automatic Candidate Level Detection: Detects whether candidate is a Fresher (student/entry-level) or Experienced.
+    - Dynamic Fresher Section Weighting: Evaluates Education (25%), Skills (20%), Summary/Objective (15%), Contact (20%), and Practical Experience (20% via Internships OR Projects OR Experience).
+    - No Unfair Penalty: Freshers are not penalized for lacking full-time work experience if they have projects or internships.
+    - Readability & Word Count Scaling: Fresher target set to 180–650 words (1-page optimal); Experienced target set to 300–1200 words.
+    - UI Profile Badge: `templates/ats/checker.html` displays `🎓 Fresher Candidate Profile Evaluation` or `💼 Experienced Candidate Profile Evaluation` badge on score results.
+  ✓ PROJECT DESCRIPTION BULLET POINTS (`builder.html`, `preview.html`, `pdf_generator.py` & `views.py`):
+    - Multiline Bullet Parsing: Multiline project descriptions (or items starting with `•`, `-`, `*`) are automatically formatted as clean bullet points (`<ul><li>...</li></ul>` in HTML, `&bull;` in ReportLab PDF).
+    - Seamless Sync: Works identically across builder live preview, HTML preview, browser print, and generated PDF.
+  ✓ SUMMARY / OBJECTIVE SECTION DISPLAY FIX (`builder.html`, `preview.html`, `pdf_generator.py`):
+    - Fallback Section Key Resolution: If a fresher template defines `objective` in its section order, entering text into `Professional Summary` will now fallback and display seamlessly in the live preview (and vice-versa for experienced templates with `summary`).
+  ✓ EXECUTIVE UI DESIGN SYSTEM & RICH AI RESPONSE ENGINE (`main.css`, `main.js`, `chat.html`, `base.html`):
+    - Modern Typography & Palette: Integrated Google Font `Plus Jakarta Sans`, rich indigo/violet gradients, dark-mode deep navy palette, and subtle glassmorphic backdrop filters.
+    - Glassmorphic Header & Cards: Backdrop blur top navigation bar, avatar dropdown, elevated card shadows, and vibrant stat icon badges.
+    - Rich AI Response Markdown Engine (`formatAIResponse`): Automatically formats AI responses with bold typography, structured bullet/numbered lists (`<ul>/<ol>`), section headings (`###`), and syntax-highlighted code block cards with a 1-click **Copy Code** button.
+    - Interactive Chat Experience: Sleek AI floating bubble with pulsing aura, quick suggestion prompt chips, typing indicator, and responsive 2-column career assistant interface.
+
+================================================================================
+  SESSION 8 UPDATES — 2026-08-20
+================================================================================
+
+1. SPAM MITIGATION & PROFESSIONAL EMAIL UPGRADE
+   - Bug: The welcome/registration email was landing in spam folders when sent via basic SMTP (like Gmail).
+   - Root Cause 1 (Domain Spoofing): `DEFAULT_FROM_EMAIL` was defaulting to `noreply@atsbuilder.com`.
+     - Fix: Updated `ats_builder/settings.py` so that `DEFAULT_FROM_EMAIL` dynamically falls back to the `EMAIL_HOST_USER` if available. This guarantees the "From" address matches the authenticated SMTP user, preventing SPF/DMARC spoofing penalties.
+   - Root Cause 2 (HTML-to-Text Mismatch): The plain-text fallback generated by `strip_tags` was unformatted and lacked the bullet points and footer present in the HTML version. Spam filters heavily penalize this mismatch.
+     - Fix: Manually authored exact 1-to-1 plain-text fallback strings in `apps/accounts/utils.py` for both the OTP and Welcome emails.
+   - Root Cause 3 (Localhost Links): The welcome email contained a hyperlink to `http://localhost:8000/dashboard/`. Email clients flag local/raw IP links as phishing.
+     - Fix: Added an `is_local` check in `apps/accounts/utils.py`. If the app is running on localhost, the email removes the hyperlink and button, replacing it with text ("Please return to your browser"). On production (Vercel), the button renders normally.
+   - Aesthetic Upgrade: Created professional HTML templates (`templates/emails/welcome.html`, `templates/emails/otp.html`, `templates/emails/base_email.html`) removing emojis and utilizing clean, corporate layouts with soft gray backgrounds, crisp sans-serif typography, and standard legal footers.
+   - Sender Name Fix: The sender name was updated to "ResumeAi" across all outgoing emails (instead of just the raw email address).
+   - Google OAuth Welcome Hook: Validated that `apps/accounts/signals.py` properly triggers `send_welcome_email` when a user signs up via Google OAuth.
+
+2. GLOBAL UI REDESIGN & TYPOGRAPHY
+   - Typography: Switched global typography to `Outfit` (headings/numbers) and `Inter` (body text) for a highly premium, geometric, and readable aesthetic.
+   - Aesthetics: Increased global border-radiuses (`--radius: 12px`, `--radius-lg: 20px`) for softer UI components.
+   - Shadows: Completely revamped CSS box-shadows to feature larger, softer, and blurred properties (`--shadow`, `--shadow-lg`, `--shadow-sm`) aligning with modern glassmorphic trends.
+   - Dashboard: Upgraded stat cards, removed generic borders, and added official SVG brand icons (e.g., full-color Google Drive icon). Nested resume card actions into a sleek dropdown menu to declutter the UI. The empty state was updated with dashed borders and spacious padding.
+   - Auth Pages: Rebuilt `login.html` and `signup.html` into a full-height, split-screen layout. The left pane features a rich gradient with frosted glass overlays; the right pane uses clean input spacing and subtle shadows.
+   - ATS Checker & Job Descriptions: Refined the 2-column layout in ATS Checker. Upgraded the animated circular ATS score ring with larger typography. Saved Job Descriptions now use modern list cards with improved spacing.
+   - Profile & AI Chat: Profile page features a rich gradient header behind the user avatar. The AI Chat welcome screen was upgraded with evenly spaced "Quick Prompt" suggestion chips featuring rounded icon containers.
+
+3. VERCEL DEPLOYMENT PREPARATION
+   - Verified `vercel.json` routing configuration. Updated the static routing rule (`"dest": "/$1"`) to accurately serve static files from the `staticfiles` directory deployed by `@vercel/static-build`.
+   - Verified `build_files.sh` properly installs dependencies, collects static files, runs migrations, and configures Django sites.
+   - Verified `wsgi.py` accurately exports the `app` object required by Vercel serverless functions.
+   - Verified `dj_database_url` integration in `settings.py` for connecting to a production PostgreSQL database.
+
+4. GITHUB REPOSITORY SYNC
+   - Initialized Git, committed all files, and forcefully pushed the entire project to the user's remote repository: `https://github.com/srinivasgovvala/ResumeAi` (overwriting the empty/existing repo with the clean production-ready codebase).
+
+================================================================================
+  END OF SESSION NOTES (SESSION 8)
+================================================================================
+
