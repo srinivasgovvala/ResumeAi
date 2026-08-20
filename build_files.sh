@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 
-# Install dependencies (Vercel uses a managed environment, so we override the warning)
-pip install -r requirements.txt --break-system-packages
+echo "Creating virtual environment..."
+python3 -m venv venv
+source venv/bin/activate
 
+echo "Installing dependencies..."
+pip install -r requirements.txt
+
+echo "Running Django commands..."
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py seed_data
