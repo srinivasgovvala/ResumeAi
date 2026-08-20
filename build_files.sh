@@ -2,8 +2,9 @@
 set -e
 
 echo "Creating virtual environment..."
-python3 -m venv .vercel-venv
-source .vercel-venv/bin/activate
+build_venv_dir="/tmp/resume-ai-build-venv"
+python3 -m venv "$build_venv_dir"
+source "$build_venv_dir/bin/activate"
 
 echo "Installing dependencies..."
 python -m pip install --upgrade pip
