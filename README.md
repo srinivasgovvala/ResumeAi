@@ -1,17 +1,33 @@
-# ATS Resume Builder
+# ResumeAI
 
-A production-ready **ATS Resume Builder + ATS Score Checker + AI Career Assistant** built with Django, HTML5, CSS3, vanilla JavaScript, and SQLite/PostgreSQL. Designed for **Vercel deployment**.
+> Build ATS-friendly resumes, check them against job descriptions, and improve them with AI.
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20ResumeAI-2563eb?style=for-the-badge)](https://resume-ai-seven-chi.vercel.app/)
+
+**[Explore the live demo →](https://resume-ai-seven-chi.vercel.app/)**
+
+ResumeAI is a Django application for professional resume building, ATS analysis, and AI-assisted career guidance. It uses PostgreSQL in production and is deployed on Vercel.
+
+## Live Demo
+
+Try the deployed app at **[resume-ai-seven-chi.vercel.app](https://resume-ai-seven-chi.vercel.app/)**.
+
+> Create your own account before adding personal resume information.
 
 ## Features
 
-- **Resume Builder** — Classic 1-column ATS-friendly template, live preview, PDF export
-- **ATS Score Checker** — Keyword matching, section analysis, formatting checks, recommendations
-- **AI Career Assistant** — Powered by OpenRouter; improve bullet points, generate summaries, tailor resumes
-- **Google Drive Integration** — Store resumes in your own Google Drive folder
-- **Dual Auth** — Google OAuth + email/password login
-- **Dark/Light Mode** — System preference auto-detected, manual toggle
-- **Floating AI Chat Widget** — Available on every page + dedicated AI page
-- **Admin Panel** — Full Django admin for users, templates, ATS config, AI settings
+| Feature | What it does |
+| --- | --- |
+| Resume Builder | Create ATS-friendly resumes with live preview and PDF export. |
+| ATS Score Checker | Analyze keywords, sections, formatting, readability, and recommendations. |
+| AI Career Assistant | Improve bullet points, generate summaries, and tailor resumes through OpenRouter. |
+| Authentication | Sign in with email/password or Google OAuth. |
+| Google Drive | Store resume files in a connected Google Drive account. |
+| Admin Panel | Manage users, templates, scoring, AI settings, and usage from Django Admin. |
+
+## Technology
+
+`Django` · `Django REST Framework` · `PostgreSQL` · `Vercel` · `WhiteNoise` · `django-allauth` · `OpenRouter` · `ReportLab`
 
 ---
 
@@ -78,7 +94,7 @@ Visit: http://127.0.0.1:8000
 2. Create a new OAuth 2.0 Client ID (Web application)
 3. Add Authorized redirect URI:
    - Local: `http://127.0.0.1:8000/accounts/google/login/callback/`
-   - Production: `https://yourdomain.vercel.app/accounts/google/login/callback/`
+   - Production: `https://resume-ai-seven-chi.vercel.app/accounts/google/login/callback/`
 4. Enable the **Google Drive API** in your project
 5. Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to your `.env`
 6. In Django Admin → Sites → Update domain to your domain
@@ -112,12 +128,20 @@ git push -u origin main
 ```
 
 ### 3. Deploy on Vercel
-1. Go to [vercel.com](https://vercel.com) → New Project → Import your GitHub repo
-2. **Framework Preset**: Other
-3. **Build Command**: `bash build_files.sh`
-4. **Output Directory**: `staticfiles`
-5. Add all environment variables from `.env.example` in Vercel Project Settings → Environment Variables
-6. Deploy!
+1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → import this GitHub repository.
+2. Set **Framework Preset** to `Other`; keep the root directory at the repository root.
+3. Add Production environment variables before deploying:
+
+   ```text
+   SECRET_KEY=<long random secret>
+   DEBUG=False
+   DATABASE_URL=<fresh PostgreSQL connection URL>
+   ALLOWED_HOSTS=.vercel.app
+   SITE_DOMAIN=resume-ai-seven-chi.vercel.app
+   CORS_ALLOWED_ORIGINS=https://resume-ai-seven-chi.vercel.app
+   ```
+
+4. Deploy. `vercel.json` and `build_files.sh` configure the build, migrations, static files, and initial seed data—do not add a separate build command or output directory in Project Settings.
 
 ### 4. After first deploy
 ```bash
