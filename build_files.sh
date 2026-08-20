@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
-pip install -r requirements.txt
+
+# Install dependencies (Vercel uses a managed environment, so we override the warning)
+pip install -r requirements.txt --break-system-packages
+
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py seed_data
