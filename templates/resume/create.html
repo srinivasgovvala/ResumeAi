@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+{% block title %}New Resume — ATS Resume Builder{% endblock %}
+{% block content %}
+<div style="max-width:640px;margin:0 auto;padding-top:2rem;">
+  <div class="page-header" style="text-align: center; justify-content: center; flex-direction: column; margin-bottom: 2.5rem;">
+    <div style="width:64px;height:64px;background:var(--accent-light);color:var(--accent);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <h1 class="page-title" style="font-size: 2.2rem; margin-bottom: 0.5rem;">Create New Resume</h1>
+    <p class="page-subtitle" style="font-size: 1.05rem;">Give your resume a title to get started.</p>
+  </div>
+  <div class="card" style="border:none;box-shadow:var(--shadow-lg);padding:1rem;">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 2rem;">
+          <label class="form-label" style="font-size: 0.95rem;">Resume Title <span class="required">*</span></label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. Software Engineer Application" style="padding: 0.85rem 1rem; font-size: 1.05rem; border-radius: 12px;" required autofocus>
+          <div class="form-hint" style="margin-top: 0.5rem; font-size: 0.85rem;">Give it a name that helps you identify it (e.g. "Google SWE Application").</div>
+        </div>
+        <div style="display:flex;gap:1rem;margin-top:2rem;">
+          <button type="submit" class="btn btn--primary btn--lg" style="flex:1; box-shadow: 0 4px 14px rgba(26, 86, 219, 0.3);">Create &amp; Start Building</button>
+          <a href="{% url 'resume_list' %}" class="btn btn--secondary btn--lg" style="padding: 0.85rem 1.5rem;">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base/base.html" %}
+{% block title %}My Resumes — ATS Resume Builder{% endblock %}
+{% block content %}
+<div class="page-header" style="margin-bottom: 2.5rem; align-items: flex-end;">
+  <div>
+    <h1 class="page-title" style="font-size: 2rem;">My Resumes</h1>
+    <p class="page-subtitle" style="font-size: 1.05rem;">{{ resumes.count }} resume{{ resumes.count|pluralize }} in your account</p>
+  </div>
+  <a href="{% url 'resume_create' %}" class="btn btn--primary btn--lg" style="box-shadow: 0 4px 14px rgba(26, 86, 219, 0.3);">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Resume
+  </a>
+</div>
+
+{% if resumes %}
+<div class="grid grid-3">
+  {% for resume in resumes %}
+  <div class="resume-card" id="resume-{{ resume.pk }}" style="border-radius: 12px; border-color: var(--border-2); background: var(--surface);">
+    <div class="resume-card-preview" style="height: 180px;">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.35">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      </svg>
+      {% if resume.last_ats_score %}
+      <span class="resume-card-score" style="color:{% if resume.last_ats_score >= 70 %}var(--success){% elif resume.last_ats_score >= 40 %}var(--warning){% else %}var(--danger){% endif %}">
+        ATS {{ resume.last_ats_score }}%
+      </span>
+      {% endif %}
+    </div>
+    <div class="resume-card-body" style="padding: 1.25rem 1.5rem;">
+      <div class="resume-card-title" style="font-size: 1.1rem; margin-bottom: 0.5rem;">{{ resume.title }}</div>
+      <div class="resume-card-meta" style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <span class="badge {% if resume.status == 'complete' %}badge--green{% elif resume.status == 'draft' %}badge--yellow{% else %}badge--gray{% endif %}">
+          {{ resume.get_status_display }}
+        </span>
+        <span class="text-muted" style="font-size: 0.85rem; display: flex; align-items: center;">{{ resume.updated_at|date:"M d, Y" }}</span>
+      </div>
+      {% if resume.full_name %}
+      <div class="text-muted mt-2" style="font-size: 0.9rem;">{{ resume.full_name }}</div>
+      {% endif %}
+    </div>
+    <div class="resume-card-actions" style="display: flex; gap: 0.5rem; padding: 1rem 1.5rem; background: var(--bg-2); border-top: 1px solid var(--border);">
+      <a href="{% url 'resume_edit' resume.pk %}" class="btn btn--primary btn--sm" style="flex:1;">Edit</a>
+      <a href="{% url 'resume_preview' resume.pk %}" class="btn btn--secondary btn--sm" target="_blank" style="flex:1;">Preview</a>
+      <div style="position: relative; display: inline-block;" class="dropdown-wrapper">
+        <button class="btn btn--secondary btn--sm" onclick="this.nextElementSibling.classList.toggle('open')" style="padding: 0.42rem 0.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+        <div class="avatar-dropdown" style="width: 140px; right: 0; top: 100%; margin-top: 5px;">
+          <a href="{% url 'resume_download' resume.pk %}" class="dropdown-item">Download PDF</a>
+          <a href="{% url 'resume_duplicate' resume.pk %}" class="dropdown-item" onclick="return confirm('Duplicate this resume?')">Duplicate</a>
+          <hr class="dropdown-divider">
+          <button class="dropdown-item dropdown-item--danger" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;" onclick="deleteResume('{{ resume.pk }}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="border: none; box-shadow: var(--shadow);">
+  <div class="empty-state" style="padding: 5rem 2rem; background: var(--surface); border-radius: 12px; border: 1px dashed var(--border-2);">
+    <div class="empty-state-icon" style="margin-bottom: 1.5rem;">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    </div>
+    <div class="empty-state-title" style="font-size: 1.25rem;">No resumes yet</div>
+    <div class="empty-state-desc" style="font-size: 1rem; color: var(--text-2); margin-bottom: 2rem;">Start building your first ATS-optimized resume. It only takes a few minutes.</div>
+    <a href="{% url 'resume_create' %}" class="btn btn--primary btn--lg">Create Your First Resume</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block extra_js %}
+<script>
+async function deleteResume(pk) {
+  if (!confirm('Delete this resume? This cannot be undone.')) return;
+  const data = await apiFetch(`/dashboard/resumes/${pk}/delete/`, { method: 'POST' });
+  if (data.success) {
+    document.getElementById('resume-' + pk)?.remove();
+    showToast('Resume deleted.');
+  } else {
+    showToast(data.error || 'Failed to delete.', 'error');
+  }
+}
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.dropdown-wrapper')) {
+    document.querySelectorAll('.dropdown-wrapper .avatar-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+</script>
+{% endblock %}

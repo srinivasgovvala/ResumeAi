@@ -1,0 +1,280 @@
+{% extends "base/base.html" %}
+{% block title %}AI Career Assistant — ATS Resume Builder{% endblock %}
+{% block extra_css %}
+<style>
+.main-content { padding: 1rem 1.5rem; }
+/* Hide toast messages on AI assistant page */
+.toast-container { display: none !important; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="chat-layout">
+  <!-- Sessions Sidebar -->
+  <div class="chat-sessions">
+    <div class="chat-sessions-header">
+      <span class="fw-600 text-sm" style="display:flex;align-items:center;gap:.5rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Conversations</span>
+      </span>
+      <button class="btn btn--primary btn--sm" onclick="newSession()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Chat
+      </button>
+    </div>
+    {% if sessions %}
+    {% for s in sessions %}
+    <div class="session-item {% if active_session and s.pk == active_session.pk %}active{% endif %}" id="sess-{{ s.pk }}">
+      <div class="session-item-row" onclick="loadSession('{{ s.pk }}')">
+        <div class="session-item-text">
+          <div class="session-title">{{ s.title }}</div>
+          <div class="session-date">{{ s.updated_at|timesince }} ago</div>
+        </div>
+        <button class="session-delete-btn" title="Delete conversation" onclick="event.stopPropagation();deleteSession('{{ s.pk }}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="padding:2rem 1rem;text-align:center;color:var(--text-3);font-size:.85rem;">No conversations yet. Start chatting!</div>
+    {% endif %}
+  </div>
+
+  <!-- Chat Main -->
+  <div class="chat-main">
+    <div class="chat-top-bar">
+      <div>
+        <div class="fw-600" id="chatTitle" style="font-size:1rem;display:flex;align-items:center;gap:.5rem;">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--success);flex-shrink:0;"></span>
+          <span>{{ active_session.title|default:"CareerAI Assistant" }}</span>
+        </div>
+        <div class="text-xs text-muted" style="margin-top:2px;">Powered by OpenRouter AI &bull; Smart Career Advisor</div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+        <select class="form-control" id="resumeContext" style="width:210px;font-size:.8rem;padding:.4rem .75rem;border-radius:8px;">
+          <option value="">No resume context</option>
+          {% for r in resumes %}
+          <option value="{{ r.pk }}">{{ r.title }}</option>
+          {% endfor %}
+        </select>
+        <div class="badge badge--blue" style="font-size:.78rem;padding:.3rem .75rem;">{{ user.ai_requests_today }} AI requests today</div>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      {% if active_session and messages %}
+        {% for msg in messages %}
+        <div class="chat-msg chat-msg--{{ msg.role }}">
+          <div class="chat-msg-avatar">
+            {% if msg.role == 'user' %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            {% else %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            {% endif %}
+          </div>
+          <div class="chat-msg-bubble">
+            {% if msg.role == 'assistant' %}
+              <div id="msg-content-{{ forloop.counter }}"></div>
+              <script>document.getElementById('msg-content-{{ forloop.counter }}').innerHTML = formatAIResponse({{ msg.content|json_script:"tmp" }});</script>
+            {% else %}
+              {{ msg.content }}
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <!-- Welcome Screen -->
+      <div style="text-align:center;padding:3rem 1.5rem;color:var(--text-2);max-width:700px;margin:auto;">
+        <div style="width:72px;height:72px;border-radius:22px;background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;box-shadow:0 8px 32px rgba(26,86,219,0.3);">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="fw-800" style="font-size:1.8rem;color:var(--text);margin-bottom:.5rem;">CareerAI Assistant</div>
+        <p style="font-size:1.05rem;color:var(--text-2);margin:0 auto 2.5rem;line-height:1.6;">I can analyze your resume, write powerful bullet points, generate professional summaries, tailor your resume to job postings, and guide your career strategy.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;text-align:left;">
+          <div class="ai-prompt-chip" style="border-radius: 16px; padding: 1.25rem;" onclick="sendQuick('Review my resume and give detailed ATS feedback')">
+            <span class="chip-icon icon" style="width:40px;height:40px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </span>
+            <div><div class="chip-title" style="font-size:1rem;">Review my resume</div><div class="chip-sub">Detailed ATS &amp; section analysis</div></div>
+          </div>
+          <div class="ai-prompt-chip" style="border-radius: 16px; padding: 1.25rem;" onclick="sendQuick('What skills should I add to improve my ATS score?')">
+            <span class="chip-icon icon" style="width:40px;height:40px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+              </svg>
+            </span>
+            <div><div class="chip-title" style="font-size:1rem;">Skill suggestions</div><div class="chip-sub">Industry keyword recommendations</div></div>
+          </div>
+          <div class="ai-prompt-chip" style="border-radius: 16px; padding: 1.25rem;" onclick="sendQuick('Write a high-impact professional summary for my role')">
+            <span class="chip-icon icon" style="width:40px;height:40px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="17" y1="18" x2="3" y2="18"/>
+              </svg>
+            </span>
+            <div><div class="chip-title" style="font-size:1rem;">Generate summary</div><div class="chip-sub">3-4 sentence value proposition</div></div>
+          </div>
+          <div class="ai-prompt-chip" style="border-radius: 16px; padding: 1.25rem;" onclick="sendQuick('How do I make my bullet points more quantifiable and ATS-friendly?')">
+            <span class="chip-icon icon" style="width:40px;height:40px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </span>
+            <div><div class="chip-title" style="font-size:1rem;">Improve bullet points</div><div class="chip-sub">Action verbs + metric outcomes</div></div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="chat-input-area">
+      <textarea id="chatInput" placeholder="Ask CareerAI anything about your resume, career, or job application..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+      <button class="chat-send-btn" onclick="sendMessage()" id="sendBtn" style="display:flex;align-items:center;gap:.5rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSessionId = {% if active_session %}'{{ active_session.pk }}'{% else %}null{% endif %};
+
+const userAvatarSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+const botAvatarSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const deleteIconSVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+
+function newSession() {
+  currentSessionId = null;
+  document.getElementById('chatTitle').innerHTML = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--success);flex-shrink:0;"></span><span>New Conversation</span>';
+  document.getElementById('chatMessages').innerHTML = `
+    <div style="text-align:center;padding:3rem 1.5rem;color:var(--text-2);max-width:640px;margin:auto;">
+      <div style="width:64px;height:64px;border-radius:20px;background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;box-shadow:0 8px 24px rgba(26,86,219,0.22);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="fw-700" style="font-size:1.4rem;color:var(--text);margin-bottom:.5rem;">CareerAI Assistant</div>
+      <p style="font-size:.92rem;color:var(--text-2);margin:0 auto 2rem;line-height:1.6;">How can I help you excel in your job search today?</p>
+    </div>`;
+}
+
+async function loadSession(pk) {
+  document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('sess-'+pk)?.classList.add('active');
+  const res = await apiFetch('/ai/session/'+pk+'/');
+  if (res.success) {
+    currentSessionId = pk;
+    document.getElementById('chatTitle').innerHTML = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--success);flex-shrink:0;"></span><span>' + escapeHtml(res.title) + '</span>';
+    const cont = document.getElementById('chatMessages');
+    cont.innerHTML = res.messages.map(m=>`
+      <div class="chat-msg chat-msg--${m.role}">
+        <div class="chat-msg-avatar">${m.role==='user'?userAvatarSVG:botAvatarSVG}</div>
+        <div class="chat-msg-bubble">${m.role==='assistant'?formatAIResponse(m.content):escapeHtml(m.content)}</div>
+      </div>`).join('');
+    cont.scrollTop = cont.scrollHeight;
+  }
+}
+
+async function deleteSession(pk) {
+  if (!confirm('Delete this conversation?')) return;
+  const res = await apiFetch('/ai/session/'+pk+'/delete/', { method: 'POST' });
+  if (res.success) {
+    const el = document.getElementById('sess-'+pk);
+    if (el) el.remove();
+    if (currentSessionId == pk) {
+      currentSessionId = null;
+      newSession();
+    }
+  }
+}
+
+function sendQuick(msg) {
+  document.getElementById('chatInput').value = msg;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const resumeId = document.getElementById('resumeContext').value;
+
+  appendMsg('user', msg);
+  const typingEl = appendTyping();
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await apiFetch('/ai/chat/', {
+      method:'POST',
+      body: JSON.stringify({ message: msg, session_id: currentSessionId, resume_id: resumeId||null })
+    });
+    typingEl.remove();
+    if (res.success) {
+      currentSessionId = res.session_id;
+      appendMsg('assistant', res.response);
+      if (!document.getElementById('sess-'+res.session_id)) {
+        const sidebar = document.querySelector('.chat-sessions');
+        const div = document.createElement('div');
+        div.className = 'session-item active';
+        div.id = 'sess-'+res.session_id;
+        div.innerHTML = `<div class="session-item-row" onclick="loadSession('${res.session_id}')">
+          <div class="session-item-text">
+            <div class="session-title">${escapeHtml(res.session_title)}</div>
+            <div class="session-date">just now</div>
+          </div>
+          <button class="session-delete-btn" title="Delete conversation" onclick="event.stopPropagation();deleteSession('${res.session_id}')">${deleteIconSVG}</button>
+        </div>`;
+        sidebar.querySelector('.chat-sessions-header').after(div);
+      }
+    } else {
+      appendMsg('assistant', 'Sorry, I encountered an error: ' + (res.error || 'Please try again.'));
+    }
+  } catch {
+    typingEl.remove();
+    appendMsg('assistant', 'Network error. Please check your connection and try again.');
+  }
+  btn.disabled = false;
+}
+
+function appendMsg(role, content) {
+  const cont = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-msg chat-msg--${role}`;
+  div.innerHTML = `<div class="chat-msg-avatar">${role==='user'?userAvatarSVG:botAvatarSVG}</div><div class="chat-msg-bubble">${role==='assistant'?formatAIResponse(content):escapeHtml(content)}</div>`;
+  cont.appendChild(div);
+  cont.scrollTop = cont.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const cont = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg chat-msg--assistant';
+  div.innerHTML = `<div class="chat-msg-avatar">${botAvatarSVG}</div><div class="chat-msg-bubble"><span class="typing-indicator"><span></span><span></span><span></span></span></div>`;
+  cont.appendChild(div);
+  cont.scrollTop = cont.scrollHeight;
+  return div;
+}
+</script>
+{% endblock %}

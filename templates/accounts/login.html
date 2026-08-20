@@ -1,0 +1,64 @@
+{% extends "base/base.html" %}
+{% block title %}Sign In — ATS Resume Builder{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-left" style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); color: white; border: none;">
+    <div style="max-width:380px;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:20px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <h2 style="font-size:2.2rem;font-weight:800;margin-bottom:1.5rem;letter-spacing:-0.5px;line-height:1.2;">Welcome Back to<br>ATSBuilder</h2>
+      <p style="opacity:.9;line-height:1.7;font-size:1.1rem;font-weight:500;">
+        Sign in to continue building your career with AI-powered resume tools.
+      </p>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-box" style="padding: 3rem; border: none; box-shadow: var(--shadow-lg);">
+      <a href="{% url 'landing' %}" style="font-size:.85rem;color:var(--text-2);display:inline-flex;align-items:center;gap:.4rem;margin-bottom:2rem;font-weight:600;padding:0.5rem 0.8rem;background:var(--bg-2);border-radius:8px;transition:var(--transition);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to home
+      </a>
+      <h1 class="auth-title" style="font-size: 2rem;">Sign in</h1>
+      <p class="auth-sub" style="font-size: 1rem;">Good to see you again.</p>
+
+      {% if google_oauth_configured %}
+      <a href="/accounts/google/login/" class="social-btn" style="padding: 1rem; border-radius: 12px; margin-top: 1.5rem;">
+        <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.3 0 24 0 14.7 0 6.7 5.5 2.9 13.5l8.1 6.3C12.9 13.5 18 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h12.8c-.6 3-2.4 5.5-5 7.2l7.8 6c4.5-4.2 7.1-10.3 7.1-17.3z"/><path fill="#FBBC05" d="M11 28.1A14.5 14.5 0 0 1 11 24c0-1.4.2-2.8.6-4.1L3.5 13.6A23.9 23.9 0 0 0 0 24c0 3.7.8 7.3 2.3 10.4l8.7-6.3z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.7l-7.8-6c-2.1 1.4-4.9 2.2-8.1 2.2-6.1 0-11.2-4.1-13-9.6L2.4 35.2C6.4 43.2 14.5 48 24 48z"/></svg>
+        Continue with Google
+      </a>
+      {% else %}
+      <div style="padding:.875rem 1rem;background:var(--warning-light);border:1px solid var(--warning);border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:var(--warning);">
+        <strong>Google Sign-In not configured.</strong> Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your <code>.env</code> file to enable it. You can still sign in with email and password below.
+      </div>
+      {% endif %}
+
+      <div class="auth-divider">or sign in with email</div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:1.5rem;">
+          <label class="form-label" style="font-size:0.95rem;">Email Address</label>
+          <input type="email" name="email" class="form-control" placeholder="jane@example.com" style="padding:0.85rem 1rem; border-radius:10px; font-size:1rem;" required autofocus>
+        </div>
+        <div class="form-group" style="margin-bottom:2rem;">
+          <label class="form-label" style="font-size:0.95rem;">Password</label>
+          <input type="password" name="password" class="form-control" placeholder="••••••••" style="padding:0.85rem 1rem; border-radius:10px; font-size:1rem;" required>
+        </div>
+        {% if form.errors %}
+        <div class="form-error" style="background:var(--danger-light);padding:.85rem;border-radius:8px;margin-bottom:1.5rem; border: 1px solid var(--danger);">
+          {% for e in form.non_field_errors %}<div style="display:flex;align-items:center;gap:0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {{ e }}</div>{% endfor %}
+        </div>
+        {% endif %}
+        <button type="submit" class="btn btn--primary btn--full btn--lg" style="font-size:1.05rem; padding: 0.9rem;">Sign In to Dashboard</button>
+        <p style="text-align:center;margin-top:1.5rem;font-size:0.95rem;color:var(--text-2);font-weight:500;">
+          Don't have an account? <a href="{% url 'signup' %}" style="font-weight:700;">Sign up free</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

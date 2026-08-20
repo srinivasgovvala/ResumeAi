@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+{% block title %}Settings — ATS Resume Builder{% endblock %}
+{% block content %}
+<div style="max-width:600px;margin:0 auto;">
+  <h1 class="page-title mb-3">Settings</h1>
+
+  <div class="card mb-3">
+    <div class="card-header"><span class="card-title">🎨 Appearance</span></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Theme</label>
+        <div style="display:flex;gap:1rem;margin-top:.5rem;">
+          <button class="btn btn--secondary" onclick="setTheme('light')">☀️ Light</button>
+          <button class="btn btn--secondary" onclick="setTheme('dark')">🌙 Dark</button>
+          <button class="btn btn--primary" onclick="setTheme(null)">🖥 System</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><span class="card-title">🔗 Integrations</span></div>
+    <div class="card-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--bg-2);border-radius:var(--radius);">
+        <div>
+          <div class="fw-600">Google Drive</div>
+          <div class="text-sm text-muted">Store resumes in your personal Drive folder.</div>
+        </div>
+        {% if user.google_drive_folder_id %}
+        <span class="badge badge--green">✓ Connected</span>
+        {% else %}
+        <a href="/accounts/google/login/" class="btn btn--primary btn--sm">Connect</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">🤖 AI Assistant</span></div>
+    <div class="card-body">
+      <div style="padding:1rem;background:var(--bg-2);border-radius:var(--radius);">
+        <div class="fw-600 mb-1">Daily AI Requests</div>
+        <div class="text-sm text-muted">{{ user.ai_requests_today }} used today. Limit resets at midnight UTC.</div>
+        <div class="score-bar" style="margin-top:.75rem;">
+          <div class="score-bar-fill" style="width:{{ user.ai_requests_today|floatformat:0 }}%;max-width:100%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function setTheme(t) {
+  if (t) { localStorage.setItem('theme', t); document.documentElement.setAttribute('data-theme', t); }
+  else { localStorage.removeItem('theme'); const sys = window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'; document.documentElement.setAttribute('data-theme', sys); }
+  showToast('Theme updated!');
+}
+</script>
+{% endblock %}

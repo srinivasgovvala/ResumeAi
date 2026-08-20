@@ -1,0 +1,303 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block title %}Preview — {{ resume.title }}{% endblock %}
+{% block extra_css %}
+<style>
+/* ── Screen chrome ── */
+.main-content { padding: 1rem; }
+.preview-chrome {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 860px; margin: 0 auto 1rem; flex-wrap: wrap; gap: .5rem;
+}
+.preview-wrap {
+  max-width: 860px; margin: 0 auto 2rem;
+  background: #e2e8f0; padding: 1.5rem;
+  border-radius: 8px;
+}
+
+/* ── A4 page ── */
+.resume-page {
+  width: 794px;       /* A4 at 96dpi */
+  min-height: 1123px; /* A4 height */
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Overflow safety: every descendant ── */
+.resume-page,
+.resume-page * {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.resume-page a { word-break: break-all; }
+.resume-page ul { padding-left: 1.2em; margin: 0; }
+.resume-page li { margin-bottom: 2px; }
+.resume-page p { margin: 0 0 6px; }
+
+/* ── Page-break safety ── */
+.resume-entry { page-break-inside: avoid; break-inside: avoid; }
+
+/* ── Print / PDF ── */
+@media print {
+  body, .main-content { padding: 0 !important; margin: 0 !important; background: #fff !important; }
+  .preview-chrome, .base-nav, header, nav, footer { display: none !important; }
+  .preview-wrap { padding: 0 !important; background: transparent !important; margin: 0 !important; border-radius: 0 !important; max-width: 100% !important; }
+  .resume-page {
+    width: 100% !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .resume-page * { max-width: 100% !important; }
+  .resume-entry { page-break-inside: avoid; break-inside: avoid; }
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Chrome (hidden on print) -->
+<div class="preview-chrome">
+  <div>
+    <a href="{% url 'resume_edit' resume.pk %}" style="color:var(--text-2);font-size:.88rem;">← Back to Editor</a>
+    <h1 style="font-size:1.2rem;font-weight:700;margin:.35rem 0 0;">{{ resume.title }}</h1>
+    <div style="font-size:.78rem;color:var(--text-3);margin-top:.2rem;">
+      Template: <b>{{ tpl_config.name }}</b>
+      {% if is_fresher %} · Entry Level{% endif %}
+    </div>
+  </div>
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    <button class="btn btn--secondary" onclick="window.print()">Print / Save as PDF</button>
+    <a href="{% url 'resume_download' resume.pk %}" class="btn btn--primary">Download PDF</a>
+    <a href="{% url 'resume_edit' resume.pk %}" class="btn btn--secondary">Edit</a>
+  </div>
+</div>
+
+<!-- Page wrapper -->
+<div class="preview-wrap">
+<div class="resume-page" id="resumePage">
+
+{% with s=tpl_config.styles %}
+<div style="
+  font-family:{{ s.font_family }};
+  font-size:{{ s.font_size }};
+  line-height:{{ s.line_height }};
+  color:{{ s.body_color }};
+  padding:{{ s.page_margin_top }} {{ s.margin }} {{ s.margin }};
+  box-sizing:border-box;
+">
+
+  {# ── HEADER ── #}
+  <div style="text-align:center;margin-bottom:10px;">
+    <div style="font-size:{{ s.name_size }};font-weight:{{ s.name_weight }};color:{{ s.name_color }};letter-spacing:0.4px;">
+      {{ resume.full_name|default:resume.user.full_name }}</div>
+    <div style="font-size:9px;color:{{ s.contact_color }};margin-top:4px;word-break:break-all;">
+      {% if resume.email %}<a href="mailto:{{ resume.email }}" style="color:inherit;text-decoration:underline;">{{ resume.email }}</a>{% endif %}
+      {% if resume.phone %}{% if resume.email %} · {% endif %}{{ resume.phone }}{% endif %}
+      {% if resume.location %}{% if resume.email or resume.phone %} · {% endif %}{{ resume.location }}{% endif %}
+      {% if resume.linkedin_url %}
+        {% if resume.email or resume.phone or resume.location %} · {% endif %}
+        <a href="{% if not 'http' in resume.linkedin_url %}https://{% endif %}{{ resume.linkedin_url }}" target="_blank" style="color:inherit;text-decoration:underline;">{{ resume.linkedin_url|cut:"https://"|cut:"http://" }}</a>
+      {% endif %}
+      {% if resume.github_url %}
+        {% if resume.email or resume.phone or resume.location or resume.linkedin_url %} · {% endif %}
+        <a href="{% if not 'http' in resume.github_url %}https://{% endif %}{{ resume.github_url }}" target="_blank" style="color:inherit;text-decoration:underline;">{{ resume.github_url|cut:"https://"|cut:"http://" }}</a>
+      {% endif %}
+      {% if resume.portfolio_url %}
+        {% if resume.email or resume.phone or resume.location or resume.linkedin_url or resume.github_url %} · {% endif %}
+        <a href="{% if not 'http' in resume.portfolio_url %}https://{% endif %}{{ resume.portfolio_url }}" target="_blank" style="color:inherit;text-decoration:underline;">{{ resume.portfolio_url|cut:"https://"|cut:"http://" }}</a>
+      {% endif %}
+      {% if resume.website_url %}
+        {% if resume.email or resume.phone or resume.location or resume.linkedin_url or resume.github_url or resume.portfolio_url %} · {% endif %}
+        <a href="{% if not 'http' in resume.website_url %}https://{% endif %}{{ resume.website_url }}" target="_blank" style="color:inherit;text-decoration:underline;">{{ resume.website_url|cut:"https://"|cut:"http://" }}</a>
+      {% endif %}
+    </div>
+  </div>
+  <div style="{{ s.header_divider }};margin-bottom:10px;"></div>
+
+  {# ── SECTIONS in template order ── #}
+  {% for sec in section_order %}
+  {% if sec != 'header' and sec not in hidden_sections %}
+
+    {% if sec == 'summary' and resume.professional_summary or sec == 'summary' and resume.career_objective %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">{% if resume.professional_summary %}Professional Summary{% else %}Career Objective{% endif %}</div>
+    <p style="margin-bottom:8px;">{{ resume.professional_summary|default:resume.career_objective }}</p>
+    {% endif %}
+
+    {% if sec == 'objective' and resume.career_objective or sec == 'objective' and resume.professional_summary %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">{% if resume.career_objective %}Career Objective{% else %}Professional Summary{% endif %}</div>
+    <p style="margin-bottom:8px;">{{ resume.career_objective|default:resume.professional_summary }}</p>
+    {% endif %}
+
+    {% if sec == 'experience' and resume.experience %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Work Experience</div>
+    {% for exp in resume.experience %}
+    <div class="resume-entry" style="margin-bottom:9px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <b>{{ exp.title }}</b>
+        <span style="color:{{ s.muted_color }};font-size:9px;white-space:nowrap;">{{ exp.start_date }}{% if exp.start_date or exp.end_date %} – {% endif %}{{ exp.end_date|default:"Present" }}</span>
+      </div>
+      <div style="color:{{ s.muted_color }};font-size:9px;">{{ exp.company }}{% if exp.location %} · {{ exp.location }}{% endif %}</div>
+      {% if exp.bullets %}
+      <ul>{% for b in exp.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'internships' and resume.internships %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Internships</div>
+    {% for intern in resume.internships %}
+    <div class="resume-entry" style="margin-bottom:9px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <b>{{ intern.title }}</b>
+        <span style="color:{{ s.muted_color }};font-size:9px;white-space:nowrap;">{{ intern.start_date }}{% if intern.start_date or intern.end_date %} – {% endif %}{{ intern.end_date }}</span>
+      </div>
+      <div style="color:{{ s.muted_color }};font-size:9px;">{{ intern.company }}{% if intern.location %} · {{ intern.location }}{% endif %}</div>
+      {% if intern.bullets %}
+      <ul>{% for b in intern.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'education' and resume.education %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Education</div>
+    {% for edu in resume.education %}
+    <div class="resume-entry" style="margin-bottom:7px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <b>{{ edu.degree }}{% if edu.field %} in {{ edu.field }}{% endif %}</b>
+        <span style="color:{{ s.muted_color }};font-size:9px;white-space:nowrap;">{{ edu.graduation_year }}</span>
+      </div>
+      <div style="color:{{ s.muted_color }};font-size:9px;">{{ edu.school }}{% if edu.location %} · {{ edu.location }}{% endif %}{% if edu.gpa %} · GPA: {{ edu.gpa }}{% endif %}</div>
+      {% if edu.courses %}<div style="color:{{ s.muted_color }};font-size:9px;">Relevant Courses: {{ edu.courses }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'skills' and resume.skills %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Skills</div>
+    {% if resume.skills.languages or resume.skills.frameworks or resume.skills.cloud or resume.skills.tools or resume.skills.soft %}
+      {% if resume.skills.languages %}<div style="margin-bottom:3px;"><b>Languages:</b> {{ resume.skills.languages|join:", " }}</div>{% endif %}
+      {% if resume.skills.frameworks %}<div style="margin-bottom:3px;"><b>Frameworks:</b> {{ resume.skills.frameworks|join:", " }}</div>{% endif %}
+      {% if resume.skills.cloud %}<div style="margin-bottom:3px;"><b>Cloud/DevOps:</b> {{ resume.skills.cloud|join:", " }}</div>{% endif %}
+      {% if resume.skills.tools %}<div style="margin-bottom:3px;"><b>Tools:</b> {{ resume.skills.tools|join:", " }}</div>{% endif %}
+      {% if resume.skills.soft %}<div style="margin-bottom:3px;"><b>Soft Skills:</b> {{ resume.skills.soft|join:", " }}</div>{% endif %}
+    {% else %}
+      {# flat list fallback #}
+      <p style="margin-bottom:8px;">{% for skill in resume.skills %}{{ skill }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if sec == 'projects' and resume.projects %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Projects</div>
+    {% for proj in formatted_projects|default:resume.projects %}
+    <div class="resume-entry" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <b>{{ proj.name }}</b>
+        {% if proj.url or proj.github %}
+        <div style="font-size:9px;display:flex;gap:6px;align-items:center;">
+          {% if proj.url %}<a href="{% if not 'http' in proj.url %}https://{% endif %}{{ proj.url }}" target="_blank" style="color:{{ s.accent_color }};text-decoration:none;font-weight:600;">Live</a>{% endif %}
+          {% if proj.url and proj.github %} · {% endif %}
+          {% if proj.github %}<a href="{% if not 'http' in proj.github %}https://{% endif %}{{ proj.github }}" target="_blank" style="color:{{ s.accent_color }};text-decoration:none;font-weight:600;">Source Code</a>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% if proj.technologies %}<div style="color:{{ s.muted_color }};font-size:9px;">{{ proj.technologies }}</div>{% endif %}
+      {% if proj.bullets %}
+      <ul style="padding-left:1.2em;margin:2px 0 0;">
+        {% for b in proj.bullets %}
+        <li>{{ b }}</li>
+        {% endfor %}
+      </ul>
+      {% elif proj.description %}
+      <ul style="padding-left:1.2em;margin:2px 0 0;">
+        <li>{{ proj.description }}</li>
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'certifications' and resume.certifications %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Certifications</div>
+    {% for cert in resume.certifications %}
+    <div style="margin-bottom:3px;">
+      • {% if cert.name %}{{ cert.name }}{% else %}{{ cert }}{% endif %}
+      {% if cert.issuer %} — {{ cert.issuer }}{% endif %}
+      {% if cert.date %}({{ cert.date }}){% elif cert.year %}({{ cert.year }}){% endif %}
+      {% if cert.url %}<a href="{{ cert.url }}" style="color:{{ s.accent_color }};font-size:9px;"> [link]</a>{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'achievements' and resume.achievements %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Achievements</div>
+    {% for ach in resume.achievements %}
+    <div style="margin-bottom:3px;">
+      • <b>{% if ach.title %}{{ ach.title }}{% else %}{{ ach }}{% endif %}</b>
+      {% if ach.description %} — {{ ach.description }}{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'publications' and resume.publications %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Publications</div>
+    {% for pub in resume.publications %}
+    <div class="resume-entry" style="margin-bottom:6px;">
+      <b>{% if pub.title %}{{ pub.title }}{% else %}{{ pub }}{% endif %}</b>
+      {% if pub.authors %}<div style="color:{{ s.muted_color }};font-size:9px;">{{ pub.authors }}</div>{% endif %}
+      {% if pub.venue %}<div style="color:{{ s.muted_color }};font-size:9px;">{{ pub.venue }}{% if pub.year %} ({{ pub.year }}){% endif %}</div>{% endif %}
+      {% if pub.url %}<a href="{{ pub.url }}" style="color:{{ s.accent_color }};font-size:9px;">Link</a>{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'awards' and resume.awards %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Awards &amp; Honors</div>
+    {% for award in resume.awards %}
+    <div style="margin-bottom:2px;">• {% if award.title %}{{ award.title }}{% else %}{{ award }}{% endif %}</div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sec == 'languages' and resume.languages %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Languages</div>
+    <p>{% for lang in resume.languages %}{{ lang }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+    {% endif %}
+
+    {% if sec == 'volunteer' and resume.volunteer_experience %}
+    <div style="font-size:{{ s.section_header_size }};font-weight:{{ s.section_header_weight }};text-transform:{{ s.section_header_transform }};color:{{ s.section_header_color }};margin:10px 0 4px;padding-bottom:3px;{{ s.section_divider }};">Volunteer Experience</div>
+    {% for vol in resume.volunteer_experience %}
+    <div class="resume-entry" style="margin-bottom:9px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <b>{{ vol.title }}</b>
+        <span style="color:{{ s.muted_color }};font-size:9px;white-space:nowrap;">{{ vol.start_date }}{% if vol.start_date or vol.end_date %} – {% endif %}{{ vol.end_date }}</span>
+      </div>
+      <div style="color:{{ s.muted_color }};font-size:9px;">{{ vol.organization|default:vol.company }}{% if vol.location %} · {{ vol.location }}{% endif %}</div>
+      {% if vol.bullets %}
+      <ul>{% for b in vol.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  {% endif %}
+  {% endfor %}
+
+</div>
+{% endwith %}
+
+</div><!-- /resume-page -->
+</div><!-- /preview-wrap -->
+{% endblock %}

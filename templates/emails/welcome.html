@@ -1,0 +1,42 @@
+{% extends "emails/base_email.html" %}
+{% block content %}
+<h2 style="margin-top: 0; font-size: 22px; color: #0d1b2e; font-weight: 700; letter-spacing: -0.5px;">Welcome to ResumeAi</h2>
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568;">
+  Hi {{ first_name }},
+</p>
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568;">
+  Thank you for creating an account with ResumeAi. Your registration is complete, and your workspace is fully set up.
+</p>
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568; margin-bottom: 20px;">
+  You now have access to our complete suite of career tools designed to optimize your application process:
+</p>
+
+<div style="background-color: #f8fafc; border: 1px solid #eef1f6; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+  <ul style="font-size: 14px; line-height: 1.6; color: #4a5568; padding-left: 20px; margin: 0;">
+    <li style="margin-bottom: 8px;"><strong>ATS-Optimized Builder:</strong> Create professional resumes using industry-standard layouts.</li>
+    <li style="margin-bottom: 8px;"><strong>Score Checker:</strong> Analyze your resume against specific job descriptions.</li>
+    <li style="margin-bottom: 8px;"><strong>AI Career Coach:</strong> Refine bullet points and generate tailored professional summaries.</li>
+    <li style="margin-bottom: 0;"><strong>Cloud Sync:</strong> Automatically back up your PDF exports to Google Drive.</li>
+  </ul>
+</div>
+
+{% if not is_local %}
+<div style="text-align: center; margin: 35px 0;">
+  <a href="{{ dashboard_url }}" style="display: inline-block; padding: 12px 26px; font-size: 15px; font-weight: 600; color: #ffffff; background-color: #1a56db; text-decoration: none; border-radius: 6px;">
+    Access Your Dashboard
+  </a>
+</div>
+{% else %}
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568; font-weight: 600; text-align: center; margin: 35px 0;">
+  Please return to your browser to access the dashboard.
+</p>
+{% endif %}
+
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568;">
+  If you require any assistance getting started, please reply directly to this email. Our support team is here to help.
+</p>
+<p style="font-size: 15px; line-height: 1.6; color: #4a5568; margin-bottom: 0; margin-top: 30px;">
+  Best regards,<br>
+  <strong>The ResumeAi Team</strong>
+</p>
+{% endblock %}

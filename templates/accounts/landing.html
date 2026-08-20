@@ -1,0 +1,133 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block title %}ATS Resume Builder — Land Your Dream Job{% endblock %}
+{% block content %}
+<div class="landing landing-wrapper">
+  <!-- Minimal top bar for unauthenticated -->
+  <nav class="landing-nav">
+    <div style="display:flex;align-items:center;gap:.6rem;font-size:1.15rem;font-weight:700;color:var(--text);letter-spacing:-0.3px;">
+      <span style="width:34px;height:34px;border-radius:10px;background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(26,86,219,0.3);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </span>
+      <span>ATS<span style="color:var(--accent)">Builder</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <span class="theme-icon icon">
+          <svg id="iconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg id="iconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          </svg>
+        </span>
+      </button>
+      <a href="{% url 'login' %}" class="btn btn--secondary btn--sm">Sign In</a>
+      <a href="{% url 'signup' %}" class="btn btn--primary btn--sm">Get Started Free</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">AI-Powered Career Platform</div>
+    <h1 class="hero-title">
+      Build Resumes That Beat
+      <span class="highlight">Every ATS System</span>
+    </h1>
+    <p class="hero-sub">
+      Create ATS-optimized resumes, check your compatibility score against any job description,
+      and get AI-powered career coaching — all in one platform.
+    </p>
+    <div class="hero-cta">
+      <a href="{% url 'signup' %}" class="btn btn--primary btn--lg">Start Building Free</a>
+      <a href="{% url 'login' %}" class="btn btn--ghost btn--lg">Sign In</a>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:flex;gap:3rem;justify-content:center;flex-wrap:wrap;margin-top:4rem;">
+      <div style="text-align:center;">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--accent);">98%</div>
+        <div style="font-size:.9rem;color:var(--text-2);font-weight:600;">ATS Pass Rate</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--accent);">15+</div>
+        <div style="font-size:.9rem;color:var(--text-2);font-weight:600;">ATS Templates</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--accent);">Google</div>
+        <div style="font-size:.9rem;color:var(--text-2);font-weight:600;">Drive Integration</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="feature-title">ATS Resume Builder</div>
+      <div class="feature-desc">Create professional, ATS-friendly resumes using our classic 1-column template optimized for both fresher and experienced candidates.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div class="feature-title">ATS Score Checker</div>
+      <div class="feature-desc">Upload any job description and get an instant ATS compatibility score with keyword matching, section analysis, and actionable fixes.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="feature-title">AI Career Assistant</div>
+      <div class="feature-desc">Let CareerAI rewrite your bullet points, generate tailored summaries, suggest keywords, and answer career questions in real time.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.84a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.72 16z"/>
+        </svg>
+      </div>
+      <div class="feature-title">Google Drive Storage</div>
+      <div class="feature-desc">All your resumes are saved directly to your own Google Drive folder — your data stays yours, forever accessible.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="feature-title">Secure &amp; Private</div>
+      <div class="feature-desc">Google OAuth + email login. Every user's data is completely isolated. API keys never exposed to the frontend.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="feature-title">Fully Responsive</div>
+      <div class="feature-desc">Works perfectly on mobile, tablet, and desktop. Light and dark mode with system preference auto-detection.</div>
+    </div>
+  </div>
+
+  <!-- CTA Footer -->
+  <div style="text-align:center;padding:4rem 1.5rem 6rem;background:linear-gradient(135deg,var(--accent-light),rgba(26,86,219,.06));">
+    <h2 style="font-size:2rem;font-weight:700;margin-bottom:1rem;">Ready to land that job?</h2>
+    <p style="color:var(--text-2);margin-bottom:2rem;">Join thousands of job seekers who built ATS-winning resumes with ATSBuilder.</p>
+    <a href="{% url 'signup' %}" class="btn btn--primary btn--lg">Get Started — It's Free</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base/base.html" %}
+{% block title %}ATS Result — {{ result.overall_score }}% — ATS Resume Builder{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'ats_checker' %}" style="color:var(--text-2);font-size:.9rem;">← ATS Checker</a>
+    <h1 class="page-title" style="margin-top:.5rem;">ATS Score Result</h1>
+    <p class="page-subtitle">{{ result.created_at|date:"M d, Y H:i" }}{% if result.resume %} · {{ result.resume.title }}{% endif %}{% if result.job_description %} vs {{ result.job_description.title }}{% endif %}</p>
+  </div>
+  {% if result.resume %}
+  <a href="{% url 'resume_edit' result.resume.pk %}" class="btn btn--primary">Edit Resume</a>
+  {% endif %}
+</div>
+
+<!-- Score header -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="ats-result-header">
+      <div class="score-ring">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none"
+            stroke="{% if result.overall_score >= 70 %}var(--success){% elif result.overall_score >= 40 %}var(--warning){% else %}var(--danger){% endif %}"
+            stroke-width="10"
+            stroke-dasharray="314"
+            stroke-dashoffset="{{ 314|add:"-314"|add:result.overall_score|floatformat:0 }}"
+            style="stroke-dashoffset: calc(314 - (314 * {{ result.overall_score }} / 100));transform:rotate(-90deg);transform-origin:center;"
+            stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-text">
+          <div class="score-ring-value">{{ result.overall_score }}%</div>
+          <div class="score-ring-label">ATS Score</div>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div class="ats-scores-grid">
+          <div class="ats-score-item">
+            <div class="score-bar-wrap">
+              <div class="score-bar-label"><span>Keywords</span><span>{{ result.keyword_score }}%</span></div>
+              <div class="score-bar"><div class="score-bar-fill {% if result.keyword_score >= 70 %}score-bar-fill--green{% elif result.keyword_score >= 40 %}score-bar-fill--yellow{% else %}score-bar-fill--red{% endif %}" style="width:{{ result.keyword_score }}%"></div></div>
+            </div>
+          </div>
+          <div class="ats-score-item">
+            <div class="score-bar-wrap">
+              <div class="score-bar-label"><span>Sections</span><span>{{ result.section_score }}%</span></div>
+              <div class="score-bar"><div class="score-bar-fill {% if result.section_score >= 70 %}score-bar-fill--green{% elif result.section_score >= 40 %}score-bar-fill--yellow{% else %}score-bar-fill--red{% endif %}" style="width:{{ result.section_score }}%"></div></div>
+            </div>
+          </div>
+          <div class="ats-score-item">
+            <div class="score-bar-wrap">
+              <div class="score-bar-label"><span>Formatting</span><span>{{ result.format_score }}%</span></div>
+              <div class="score-bar"><div class="score-bar-fill {% if result.format_score >= 70 %}score-bar-fill--green{% elif result.format_score >= 40 %}score-bar-fill--yellow{% else %}score-bar-fill--red{% endif %}" style="width:{{ result.format_score }}%"></div></div>
+            </div>
+          </div>
+          <div class="ats-score-item">
+            <div class="score-bar-wrap">
+              <div class="score-bar-label"><span>Readability</span><span>{{ result.readability_score }}%</span></div>
+              <div class="score-bar"><div class="score-bar-fill {% if result.readability_score >= 70 %}score-bar-fill--green{% elif result.readability_score >= 40 %}score-bar-fill--yellow{% else %}score-bar-fill--red{% endif %}" style="width:{{ result.readability_score }}%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;">
+          {% if result.overall_score >= 80 %}
+          <div class="badge badge--green" style="font-size:.9rem;padding:.4rem 1rem;">Excellent — Ready to Apply!</div>
+          {% elif result.overall_score >= 60 %}
+          <div class="badge badge--blue" style="font-size:.9rem;padding:.4rem 1rem;">Good — A few improvements recommended</div>
+          {% elif result.overall_score >= 40 %}
+          <div class="badge badge--yellow" style="font-size:.9rem;padding:.4rem 1rem;">Fair — Needs tailoring</div>
+          {% else %}
+          <div class="badge badge--red" style="font-size:.9rem;padding:.4rem 1rem;">Poor — Significant improvements needed</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+  <div>
+    <!-- Keywords -->
+    <div class="card mb-3">
+      <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Matched Keywords</span><span class="badge badge--green">{{ result.matched_keywords|length }}</span></div>
+      <div class="card-body">
+        <div class="tag-list">
+          {% for kw in result.matched_keywords %}<span class="tag tag--matched">{{ kw }}</span>{% empty %}<span class="text-muted text-sm">No keywords matched.</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:.4rem;color:var(--danger)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Missing Keywords</span><span class="badge badge--red">{{ result.missing_keywords|length }}</span></div>
+      <div class="card-body">
+        <div class="tag-list">
+          {% for kw in result.missing_keywords %}<span class="tag tag--missing">{{ kw }}</span>{% empty %}<span class="text-muted text-sm">All keywords matched!</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sections -->
+    <div class="card">
+      <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Section Analysis</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:.5rem;">
+        {% for section, info in result.section_analysis.items %}
+        <div class="section-check section-check--{% if info.present %}pass{% else %}fail{% endif %}">
+          <span class="check-icon">{% if info.present %}✓{% else %}✗{% endif %}</span>
+          <span>
+            <b>{{ section|title }}</b>
+            {% if not info.present %}<span class="text-muted text-sm"> — Missing</span>{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <!-- Recommendations -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <span class="card-title" style="display:flex;align-items:center;gap:.4rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Recommendations</span>
+        {% if result.resume %}
+        <a href="{% url 'ai_assistant' %}" class="btn btn--ghost btn--sm" style="display:flex;align-items:center;gap:.35rem;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Ask AI</a>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <ul class="recommendation-list">
+          {% for rec in result.recommendations %}
+          <li class="recommendation-item">
+            <span class="rec-icon" style="color:var(--accent);">→</span>
+            <span>{{ rec }}</span>
+          </li>
+          {% empty %}
+          <li class="text-muted text-sm">No recommendations — great job!</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Formatting Issues -->
+    {% if result.formatting_issues %}
+    <div class="card">
+      <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:.4rem;color:var(--warning)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Formatting Issues</span></div>
+      <div class="card-body">
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:.5rem;">
+          {% for issue in result.formatting_issues %}
+          <li style="display:flex;gap:.5rem;align-items:flex-start;font-size:.875rem;">
+            <span style="color:var(--warning);font-weight:600;">!</span><span>{{ issue }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

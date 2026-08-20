@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Error — ATS Resume Builder</title>
+  {% load static %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+  <div>
+    <div style="font-size:6rem;margin-bottom:1rem;">⚠️</div>
+    <h1 style="font-size:3rem;font-weight:800;color:var(--danger);margin-bottom:.5rem;">500</h1>
+    <h2 style="font-size:1.5rem;font-weight:600;margin-bottom:1rem;">Internal Server Error</h2>
+    <p style="color:var(--text-2);margin-bottom:2rem;max-width:400px;">Something went wrong on our end. Please try again in a moment.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;">
+      <a href="/" class="btn btn--primary">Go Home</a>
+      <a href="javascript:location.reload()" class="btn btn--secondary">Try Again</a>
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
